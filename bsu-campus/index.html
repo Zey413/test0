@@ -3,444 +3,348 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>北京体育大学 - 3D校园探索</title>
+<title>北京体育大学 - 3D校园探索 (真实地图版)</title>
 <style>
-*{margin:0;padding:0;box-sizing:border-box}
-body{overflow:hidden;background:#000;font-family:'Microsoft YaHei','PingFang SC',sans-serif}
-canvas{display:block}
-#loading{position:fixed;top:0;left:0;width:100%;height:100%;background:linear-gradient(135deg,#1a1a2e 0%,#16213e 50%,#0f3460 100%);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:1000;transition:opacity .8s}
+*{margin:0;padding:0;box-sizing:border-box}body{overflow:hidden;background:#000;font-family:'Microsoft YaHei','PingFang SC',sans-serif}canvas{display:block}
+#loading{position:fixed;top:0;left:0;width:100%;height:100%;background:linear-gradient(135deg,#1a1a2e,#16213e,#0f3460);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:1000;transition:opacity .8s}
 #loading h1{color:#e94560;font-size:48px;margin-bottom:8px;text-shadow:0 0 30px rgba(233,69,96,.5);letter-spacing:6px}
 #loading h2{color:#fff;font-size:18px;margin-bottom:6px;font-weight:normal;opacity:.8}
 #loading h3{color:rgba(255,255,255,.4);font-size:13px;margin-bottom:35px;font-weight:normal}
-#loading .bar-bg{width:360px;height:4px;background:rgba(255,255,255,.1);border-radius:2px}
-#loading .bar{height:100%;background:linear-gradient(90deg,#e94560,#ff6b6b);border-radius:2px;transition:width .3s;width:0%}
-#loading .tip{color:rgba(255,255,255,.4);margin-top:18px;font-size:12px}
+.bar-bg{width:360px;height:4px;background:rgba(255,255,255,.1);border-radius:2px}.bar{height:100%;background:linear-gradient(90deg,#e94560,#ff6b6b);border-radius:2px;transition:width .3s;width:0%}
+.tip{color:rgba(255,255,255,.4);margin-top:18px;font-size:12px}
 #hud{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:10}
 #crosshair{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:20px;height:20px}
 #crosshair::before,#crosshair::after{content:'';position:absolute;background:rgba(255,255,255,.5)}
-#crosshair::before{width:2px;height:20px;left:9px;top:0}
-#crosshair::after{width:20px;height:2px;left:0;top:9px}
-#minimap{position:absolute;bottom:20px;right:20px;width:220px;height:220px;background:rgba(0,0,0,.8);border:2px solid rgba(255,255,255,.2);border-radius:8px;overflow:hidden}
+#crosshair::before{width:2px;height:20px;left:9px}#crosshair::after{width:20px;height:2px;top:9px}
+#minimap{position:absolute;bottom:20px;right:20px;width:240px;height:240px;background:rgba(0,0,0,.85);border:2px solid rgba(255,255,255,.2);border-radius:8px;overflow:hidden}
 #minimap canvas{width:100%;height:100%}
-#info-panel{position:absolute;top:16px;left:16px;background:rgba(0,0,0,.65);border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:12px 16px;color:#fff;min-width:170px;backdrop-filter:blur(8px)}
-#info-panel .title{font-size:15px;color:#e94560;margin-bottom:5px;font-weight:bold}
-#info-panel .sub{font-size:11px;color:rgba(255,255,255,.45);margin-top:2px}
+#info{position:absolute;top:16px;left:16px;background:rgba(0,0,0,.6);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:12px 16px;color:#fff;min-width:170px;backdrop-filter:blur(8px)}
+#info .t{font-size:15px;color:#e94560;margin-bottom:4px;font-weight:bold}#info .s{font-size:11px;color:rgba(255,255,255,.4);margin-top:2px}
 #dialog{position:absolute;bottom:90px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.88);border:2px solid #e94560;border-radius:14px;padding:18px 24px;color:#fff;max-width:520px;min-width:360px;display:none;backdrop-filter:blur(10px);pointer-events:auto}
-#dialog .nn{color:#e94560;font-size:14px;font-weight:bold;margin-bottom:5px}
-#dialog .nt{font-size:13px;line-height:1.7}
-#dialog .hint{font-size:10px;color:rgba(255,255,255,.3);margin-top:8px;text-align:right}
-#controls-hint{position:absolute;bottom:16px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.5);border-radius:8px;padding:6px 16px;color:rgba(255,255,255,.5);font-size:10px;text-align:center;backdrop-filter:blur(4px)}
-#interact-hint{position:absolute;top:55%;left:50%;transform:translate(-50%,0);color:#fff;font-size:12px;background:rgba(233,69,96,.85);padding:3px 12px;border-radius:16px;display:none}
-#building-label{position:absolute;top:62%;left:50%;transform:translate(-50%,0);color:#fff;font-size:15px;font-weight:bold;text-shadow:0 2px 8px rgba(0,0,0,.8);display:none;text-align:center;pointer-events:none}
-#quest-panel{position:absolute;top:16px;right:16px;background:rgba(0,0,0,.65);border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:12px;color:#fff;width:220px;backdrop-filter:blur(8px);max-height:50vh;overflow-y:auto}
-#quest-panel .qt{font-size:12px;color:#ffd700;margin-bottom:6px;font-weight:bold}
-#quest-panel .qi{font-size:10px;color:rgba(255,255,255,.6);margin:2px 0}
-#quest-panel .qi.done{color:rgba(255,255,255,.2);text-decoration:line-through}
-#quest-panel .sep{border-top:1px solid rgba(255,255,255,.08);margin:6px 0}
-#notif-container{position:fixed;top:70px;left:50%;transform:translateX(-50%);z-index:100;pointer-events:none;display:flex;flex-direction:column;align-items:center;gap:6px}
-.notif{background:rgba(233,69,96,.9);color:#fff;padding:6px 20px;border-radius:20px;font-size:13px;white-space:nowrap;animation:nA 2.5s forwards}
+#dialog .nn{color:#e94560;font-size:14px;font-weight:bold;margin-bottom:5px}#dialog .nt{font-size:13px;line-height:1.7}#dialog .h{font-size:10px;color:rgba(255,255,255,.3);margin-top:8px;text-align:right}
+#hint{position:absolute;bottom:16px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.5);border-radius:8px;padding:6px 16px;color:rgba(255,255,255,.5);font-size:10px;text-align:center}
+#ihint{position:absolute;top:55%;left:50%;transform:translate(-50%,0);color:#fff;font-size:12px;background:rgba(233,69,96,.85);padding:3px 12px;border-radius:16px;display:none}
+#blbl{position:absolute;top:62%;left:50%;transform:translate(-50%,0);color:#fff;font-size:15px;font-weight:bold;text-shadow:0 2px 8px rgba(0,0,0,.8);display:none;pointer-events:none}
+#qp{position:absolute;top:16px;right:16px;background:rgba(0,0,0,.6);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:12px;color:#fff;width:210px;backdrop-filter:blur(8px);max-height:45vh;overflow-y:auto}
+#qp .qt{font-size:12px;color:#ffd700;margin-bottom:6px;font-weight:bold}#qp .qi{font-size:10px;color:rgba(255,255,255,.5);margin:2px 0}#qp .qi.d{color:rgba(255,255,255,.2);text-decoration:line-through}#qp .sp{border-top:1px solid rgba(255,255,255,.06);margin:5px 0}
+#nc{position:fixed;top:70px;left:50%;transform:translateX(-50%);z-index:100;pointer-events:none;display:flex;flex-direction:column;align-items:center;gap:6px}
+.nf{background:rgba(233,69,96,.9);color:#fff;padding:6px 18px;border-radius:20px;font-size:13px;white-space:nowrap;animation:nA 2.5s forwards}
 @keyframes nA{0%{opacity:0;transform:translateY(12px)}15%{opacity:1;transform:translateY(0)}75%{opacity:1}100%{opacity:0;transform:translateY(-12px)}}
-#stamina-bar{position:absolute;bottom:45px;left:50%;transform:translateX(-50%);width:140px;height:3px;background:rgba(255,255,255,.12);border-radius:2px;overflow:hidden}
-#stamina-fill{height:100%;background:#4CAF50;transition:width .1s;width:100%;border-radius:2px}
+#sb{position:absolute;bottom:42px;left:50%;transform:translateX(-50%);width:140px;height:3px;background:rgba(255,255,255,.1);border-radius:2px;overflow:hidden}
+#sf{height:100%;background:#4CAF50;transition:width .1s;width:100%;border-radius:2px}
 </style>
 </head>
 <body>
-<div id="loading">
-  <h1>北京体育大学</h1>
-  <h2>Beijing Sport University</h2>
-  <h3>3D 校园探索游戏 · 基于OpenStreetMap真实数据</h3>
-  <div class="bar-bg"><div class="bar" id="load-bar"></div></div>
-  <div class="tip" id="load-tip">正在初始化…</div>
-</div>
+<div id="loading"><h1>北京体育大学</h1><h2>Beijing Sport University</h2><h3>3D校园探索 · 基于OpenStreetMap真实建筑轮廓</h3><div class="bar-bg"><div class="bar" id="lb"></div></div><div class="tip" id="lt">初始化…</div></div>
 <div id="hud">
-  <div id="crosshair"></div>
-  <div id="minimap"><canvas id="minimap-canvas" width="220" height="220"></canvas></div>
-  <div id="info-panel">
-    <div class="title" id="location-name">北京体育大学</div>
-    <div class="sub" id="coord-display"></div>
-    <div class="sub" id="speed-display">🚶 步行</div>
-    <div class="sub" id="game-time"></div>
-  </div>
-  <div id="dialog"><div class="nn" id="dialog-name"></div><div class="nt" id="dialog-text"></div><div class="hint">E 继续 · Q 关闭</div></div>
-  <div id="controls-hint">WASD移动 · 鼠标视角 · Shift奔跑 · Space跳跃 · E互动 · F第三人称 · 点击开始</div>
-  <div id="interact-hint">按 E 互动</div>
-  <div id="building-label"></div>
-  <div id="quest-panel"><div class="qt">📋 校园探索任务</div><div id="quest-list"></div></div>
-  <div id="notif-container"></div>
-  <div id="stamina-bar"><div id="stamina-fill"></div></div>
+<div id="crosshair"></div>
+<div id="minimap"><canvas id="mc" width="240" height="240"></canvas></div>
+<div id="info"><div class="t" id="ln">北京体育大学</div><div class="s" id="cd"></div><div class="s" id="sd">🚶 步行</div><div class="s" id="gt"></div></div>
+<div id="dialog"><div class="nn" id="dn"></div><div class="nt" id="dt"></div><div class="h">E继续 · Q关闭</div></div>
+<div id="hint">WASD移动 · 鼠标视角 · Shift奔跑 · Space跳跃 · E互动 · F第三人称 · 点击开始</div>
+<div id="ihint">按E互动</div><div id="blbl"></div>
+<div id="qp"><div class="qt">📋 校园探索任务</div><div id="ql"></div></div>
+<div id="nc"></div><div id="sb"><div id="sf"></div></div>
 </div>
-<script type="importmap">{"imports":{"three":"https://unpkg.com/three@0.160.0/build/three.module.js","three/addons/":"https://unpkg.com/three@0.160.0/examples/jsm/"}}</script>
+<script type="importmap">{"imports":{"three":"https://unpkg.com/three@0.160.0/build/three.module.js"}}</script>
 <script type="module">
 import * as THREE from 'three';
 
-/*========== CONFIG ==========*/
+/* ===== CONFIG ===== */
 const PH=1.72,WS=4.5,RS=9,JF=7,GR=18,MS=0.002,MXS=100,SD=15,SR=20;
-
-/*========== STATE ==========*/
-const S={locked:false,vel:new THREE.Vector3(),fwd:false,back:false,left:false,right:false,sprint:false,canJump:true,yaw:0,pitch:0,tp:false,nearNPC:null,dlgOpen:false,dlgIdx:0,visited:new Set(),gt:8*60,stam:MXS,wc:0,hb:0,isM:false};
-
-/*========== SCENE ==========*/
-const scene=new THREE.Scene();
-scene.background=new THREE.Color(0x87CEEB);
-scene.fog=new THREE.FogExp2(0x87CEEB,0.001);
-const camera=new THREE.PerspectiveCamera(72,innerWidth/innerHeight,0.1,2500);
-const R=new THREE.WebGLRenderer({antialias:true});
-R.setSize(innerWidth,innerHeight);R.setPixelRatio(Math.min(devicePixelRatio,2));
-R.shadowMap.enabled=true;R.shadowMap.type=THREE.PCFSoftShadowMap;
-R.toneMapping=THREE.ACESFilmicToneMapping;R.toneMappingExposure=1.1;
-document.body.appendChild(R.domElement);
-
-/*========== LIGHTS ==========*/
+/* ===== STATE ===== */
+const S={locked:false,vel:new THREE.Vector3(),fwd:false,back:false,left:false,right:false,sprint:false,canJump:true,yaw:0,pitch:0,tp:false,nearNPC:null,dO:false,dI:0,vis:new Set(),gt:8*60,st:MXS,wc:0,hb:0,iM:false};
+/* ===== SCENE ===== */
+const scene=new THREE.Scene();scene.background=new THREE.Color(0x87CEEB);scene.fog=new THREE.FogExp2(0x87CEEB,.001);
+const cam=new THREE.PerspectiveCamera(72,innerWidth/innerHeight,.1,2500);
+const R=new THREE.WebGLRenderer({antialias:true});R.setSize(innerWidth,innerHeight);R.setPixelRatio(Math.min(devicePixelRatio,2));R.shadowMap.enabled=true;R.shadowMap.type=THREE.PCFSoftShadowMap;R.toneMapping=THREE.ACESFilmicToneMapping;R.toneMappingExposure=1.1;document.body.appendChild(R.domElement);
+/* ===== LIGHTS ===== */
 const amb=new THREE.AmbientLight(0x506080,.55);scene.add(amb);
-const sun=new THREE.DirectionalLight(0xfff5e0,1.3);
-sun.position.set(200,350,150);sun.castShadow=true;
-sun.shadow.mapSize.set(4096,4096);sun.shadow.camera.near=1;sun.shadow.camera.far=1500;
-const sc=600;sun.shadow.camera.left=-sc;sun.shadow.camera.right=sc;sun.shadow.camera.top=sc;sun.shadow.camera.bottom=-sc;
-scene.add(sun);scene.add(new THREE.HemisphereLight(0x87CEEB,0x3a5f3a,.35));
+const sun=new THREE.DirectionalLight(0xfff5e0,1.3);sun.position.set(200,350,150);sun.castShadow=true;sun.shadow.mapSize.set(4096,4096);const sc2=600;sun.shadow.camera.near=1;sun.shadow.camera.far=1500;sun.shadow.camera.left=-sc2;sun.shadow.camera.right=sc2;sun.shadow.camera.top=sc2;sun.shadow.camera.bottom=-sc2;scene.add(sun);scene.add(new THREE.HemisphereLight(0x87CEEB,0x3a5f3a,.35));
+/* ===== MATERIALS ===== */
+const Mb=new THREE.MeshPhongMaterial({color:0xd4c5a0,flatShading:true});
+const Md=new THREE.MeshPhongMaterial({color:0xc0a888,flatShading:true});
+const Ms=new THREE.MeshPhongMaterial({color:0x8090a0,flatShading:true});
+const Mo=new THREE.MeshPhongMaterial({color:0xe0d8c8,flatShading:true});
+const Mg=new THREE.MeshLambertMaterial({color:0x2d8c2d});
+const Mr=new THREE.MeshLambertMaterial({color:0x505050});
+const Mp=new THREE.MeshLambertMaterial({color:0xc8c0a8});
+const Mtr=new THREE.MeshLambertMaterial({color:0xCC3333});
+const Mw=new THREE.MeshLambertMaterial({color:0x4a7a4a});
+const Mc=new THREE.MeshLambertMaterial({color:0xa8a8a0});
+const Mgl=new THREE.MeshPhongMaterial({color:0x88ccff,transparent:true,opacity:.35,shininess:120});
+const Mmt=new THREE.MeshPhongMaterial({color:0xc0c0c0,shininess:60});
+const Mgold=new THREE.MeshPhongMaterial({color:0xDAA520,shininess:50});
+const MdR=new THREE.MeshPhongMaterial({color:0x8B0000});
+const Mgate=new THREE.MeshPhongMaterial({color:0xC0A040,flatShading:true});
+const Mtrunk=new THREE.MeshLambertMaterial({color:0x6B4226});
+const Mleaf=[new THREE.MeshLambertMaterial({color:0x228B22}),new THREE.MeshLambertMaterial({color:0x2E8B57}),new THREE.MeshLambertMaterial({color:0x1a7a1a})];
 
-/*========== MATERIALS ==========*/
-const M={
-  ground:new THREE.MeshLambertMaterial({color:0x4a7a4a}),
-  road:new THREE.MeshLambertMaterial({color:0x505050}),
-  path:new THREE.MeshLambertMaterial({color:0xc8c0a8}),
-  concrete:new THREE.MeshLambertMaterial({color:0xa8a8a0}),
-  track:new THREE.MeshLambertMaterial({color:0xCC3333}),
-  grass:new THREE.MeshLambertMaterial({color:0x2d8c2d}),
-  glass:new THREE.MeshPhongMaterial({color:0x88ccff,transparent:true,opacity:0.35,shininess:120}),
-  metal:new THREE.MeshPhongMaterial({color:0xc0c0c0,shininess:60}),
-  gold:new THREE.MeshPhongMaterial({color:0xDAA520,shininess:50}),
-  white:new THREE.MeshLambertMaterial({color:0xf5f5f0}),
-  darkRed:new THREE.MeshPhongMaterial({color:0x8B0000}),
-  gate:new THREE.MeshPhongMaterial({color:0xC0A040,flatShading:true}),
-  trunk:new THREE.MeshLambertMaterial({color:0x6B4226}),
-  leaf:[new THREE.MeshLambertMaterial({color:0x228B22}),new THREE.MeshLambertMaterial({color:0x2E8B57}),new THREE.MeshLambertMaterial({color:0x1a7a1a})],
-};
-// Building colors
-const BC=[
-  new THREE.MeshPhongMaterial({color:0xd4c5a0,flatShading:true}),
-  new THREE.MeshPhongMaterial({color:0xc0b090,flatShading:true}),
-  new THREE.MeshPhongMaterial({color:0xe8e0d0,flatShading:true}),
-  new THREE.MeshPhongMaterial({color:0xb0a888,flatShading:true}),
-  new THREE.MeshPhongMaterial({color:0x8090a0,flatShading:true}),
-  new THREE.MeshPhongMaterial({color:0x4682B4,flatShading:true}),
-  new THREE.MeshPhongMaterial({color:0xB22222,flatShading:true}),
-  new THREE.MeshPhongMaterial({color:0x7a2020}),
-  new THREE.MeshPhongMaterial({color:0x556655}),
+function lp(p,t){document.getElementById('lb').style.width=p+'%';document.getElementById('lt').textContent=t;}
+function bx(w,h,d,m){const o=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m);o.castShadow=true;o.receiveShadow=true;return o;}
+
+/* ===== COORDINATE CONVERSION ===== */
+// OSM center of campus: 40.0225°N, 116.3125°E
+// 1° lat ≈ 111000m, 1° lon at 40°N ≈ 85176m
+const cLat=40.0225,cLon=116.3125;
+function G(lat,lon){return[(lon-cLon)*85176,(lat-cLat)*111000];}
+
+const blds=[],cols=[];
+
+/* ===== REAL OSM BUILDING DATA ===== */
+// Each entry: [name, material, height, [[lat,lon],...], questId?]
+// Polygon coordinates extracted directly from OpenStreetMap (ODbL)
+const osmBuildings=[
+// 体育馆 (complex polygon)
+["北京体育大学体育馆",Ms,18,[[40.0195218,116.3118106],[40.0193328,116.3115907],[40.0188727,116.3116604],[40.0186919,116.3119447],[40.0187371,116.3124490],[40.0188850,116.3126153],[40.0191027,116.3125831],[40.0190986,116.3126582],[40.0192219,116.3127762],[40.0192465,116.3131463],[40.0190863,116.3131678],[40.0190822,116.3131142],[40.0189055,116.3131303],[40.0189220,116.3133609],[40.0195259,116.3132912],[40.0195135,116.3131303],[40.0196738,116.3131088],[40.0196327,116.3126796],[40.0194355,116.3127011],[40.0194232,116.3125402],[40.0195587,116.3123524]],"gym"],
+// 图书馆
+["图书馆",Mo,20,[[40.0212759,116.3125301],[40.0212218,116.3121126],[40.0212359,116.3123160],[40.0215269,116.3122816],[40.0215507,116.3126230],[40.0215239,116.3126262],[40.0215518,116.3130287],[40.0217167,116.3130092],[40.0216999,116.3127677],[40.0216649,116.3127718],[40.0216159,116.3120660]],"library"],
+// 第二教学楼
+["第二教学楼",Mb,18,[[40.0212218,116.3121126],[40.0212359,116.3123160],[40.0215269,116.3122816],[40.0215507,116.3126230],[40.0215239,116.3126262],[40.0215518,116.3130287],[40.0217167,116.3130092],[40.0216999,116.3127677],[40.0216649,116.3127718],[40.0216159,116.3120660]]],
+// 教学楼
+["教学楼",Mb,20,[[40.0211975,116.3143946],[40.0211245,116.3134771],[40.0216915,116.3134001],[40.0217656,116.3143308],[40.0214336,116.3143759],[40.0214223,116.3142349],[40.0216148,116.3142088],[40.0215717,116.3136679],[40.0212547,116.3137109],[40.0213079,116.3143796]]],
+// 南办公楼
+["南办公楼",Mo,16,[[40.0202927,116.3122888],[40.0201696,116.3123048],[40.0201742,116.3123646],[40.0200261,116.3123839],[40.0200216,116.3123253],[40.0198884,116.3123426],[40.0199007,116.3125035],[40.0200336,116.3124862],[40.0200798,116.3130920],[40.0199398,116.3131102],[40.0199523,116.3132743],[40.0200976,116.3132555],[40.0200937,116.3132049],[40.0202456,116.3131852],[40.0202500,116.3132427],[40.0203629,116.3132280],[40.0203506,116.3130663],[40.0202298,116.3130820],[40.0201836,116.3124760],[40.0203057,116.3124601]]],
+// 北办公楼
+["北办公楼",Mo,16,[[40.0208175,116.3121972],[40.0206945,116.3122132],[40.0206990,116.3122730],[40.0205510,116.3122923],[40.0205465,116.3122337],[40.0204133,116.3122510],[40.0204256,116.3124119],[40.0205585,116.3123946],[40.0206047,116.3130004],[40.0204647,116.3130186],[40.0204772,116.3131827],[40.0206224,116.3131639],[40.0206186,116.3131133],[40.0207705,116.3130936],[40.0207749,116.3131511],[40.0208878,116.3131364],[40.0208754,116.3129747],[40.0207547,116.3129904],[40.0207085,116.3123844],[40.0208306,116.3123685]]],
+// 国家训练基地综合馆
+["国家训练基地综合馆",Ms,16,[[40.0263619,116.3118324],[40.0256942,116.3119220],[40.0257596,116.3127537],[40.0264273,116.3126642]]],
+// 体操馆
+["体操馆",Ms,15,[[40.0226193,116.3133191],[40.0219586,116.3134072],[40.0220277,116.3142919],[40.0226884,116.3142038]]],
+// 武术馆
+["武术馆",Ms,12,[[40.0225372,116.3122439],[40.0219229,116.3123271],[40.0219804,116.3130510],[40.0225947,116.3129678]]],
+// 篮球馆
+["篮球馆",Ms,16,[[40.0223783,116.3108821],[40.0218400,116.3109470],[40.0218495,116.3110814],[40.0217644,116.3110917],[40.0218147,116.3118036],[40.0225023,116.3117207],[40.0224524,116.3110157],[40.0223883,116.3110234]]],
+// 田径馆
+["田径馆",Ms,14,[[40.0221119,116.3085056],[40.0217610,116.3085546],[40.0217891,116.3088979],[40.0217436,116.3089042],[40.0218432,116.3101212],[40.0222396,116.3100659]]],
+// 大鹏馆
+["大鹏馆",Ms,14,[[40.0214952,116.3087957],[40.0211682,116.3088393],[40.0212724,116.3101692],[40.0215993,116.3101256]]],
+// 网球综合训练馆
+["网球综合训练馆",Ms,13,[[40.0209923,116.3089288],[40.0205921,116.3089791],[40.0206739,116.3100872],[40.0206083,116.3100955],[40.0206210,116.3102682],[40.0209015,116.3102330],[40.0210868,116.3102097]]],
+// 游泳馆
+["游泳馆",new THREE.MeshPhongMaterial({color:0x4682B4,flatShading:true}),14,[[40.0196446,116.3096162],[40.0197033,116.3104827],[40.0204135,116.3104006],[40.0204049,116.3102728],[40.0203633,116.3102776],[40.0203047,116.3094127],[40.0199600,116.3094526],[40.0199686,116.3095788]],"swim"],
+// 室内马术馆
+["室内马术馆",Ms,12,[[40.0271955,116.3095139],[40.0265467,116.3095795],[40.0265847,116.3102209],[40.0272335,116.3101553]]],
+// 食堂
+["北京体育大学食堂",Mb,11,[[40.0218182,116.3150346],[40.0217627,116.3150775],[40.0217134,116.3151044],[40.0216600,116.3151258],[40.0214752,116.3151526],[40.0214279,116.3151446],[40.0213786,116.3151285],[40.0213150,116.3151070],[40.0213622,116.3157266],[40.0213910,116.3157240],[40.0214033,116.3158795],[40.0218531,116.3158178],[40.0218408,116.3156623],[40.0218654,116.3156596]],"canteen"],
+// 教师食堂
+["教师食堂",Mb,10,[[40.0204052,116.3164560],[40.0203660,116.3164618],[40.0203598,116.3164177],[40.0202326,116.3164362],[40.0202063,116.3164844],[40.0202068,116.3165205],[40.0202379,116.3165530],[40.0204105,116.3165251]]],
+// 1号学生公寓
+["1号学生公寓",Md,21,[[40.0198586,116.3149783],[40.0195053,116.3150185],[40.0195546,116.3156113],[40.0196758,116.3155952],[40.0197128,116.3160270],[40.0199757,116.3159895],[40.0199983,116.3159761],[40.0200147,116.3159466],[40.0200209,116.3159090],[40.0200045,116.3158661],[40.0199778,116.3158500],[40.0199469,116.3158500],[40.0198278,116.3158661],[40.0198032,116.3155818],[40.0199018,116.3155684]]],
+// 2号学生公寓
+["2号学生公寓",Md,21,[[40.0202300,116.3150397],[40.0202854,116.3157285],[40.0201573,116.3157461],[40.0201019,116.3150572]]],
+// 3号学生公寓（小白楼）
+["3号学生公寓",Md,21,[[40.0204698,116.3158396],[40.0203267,116.3158584],[40.0203639,116.3163677],[40.0203719,116.3164491],[40.0205232,116.3164228]]],
+// 4号学生公寓
+["4号学生公寓",Md,21,[[40.0206097,116.3150068],[40.0206601,116.3156890],[40.0205292,116.3157055],[40.0204788,116.3150232]]],
+// 5号学生公寓
+["5号学生公寓",Md,21,[[40.0208100,116.3157814],[40.0206887,116.3157982],[40.0207518,116.3165758],[40.0208731,116.3165590]]],
+// 6号学生公寓
+["6号学生公寓",Md,21,[[40.0210079,116.3148390],[40.0208226,116.3148655],[40.0208357,116.3150215],[40.0209135,116.3150104],[40.0209566,116.3155251],[40.0208767,116.3155365],[40.0208903,116.3156997],[40.0210777,116.3156729]]],
+// 8号学生公寓
+["8号学生公寓",Md,21,[[40.0220654,116.3148109],[40.0219485,116.3148263],[40.0220085,116.3155990],[40.0221254,116.3155835]]],
+// 10号学生公寓
+["10号学生公寓",Md,21,[[40.0223615,116.3146754],[40.0221177,116.3147042],[40.0221762,116.3155461],[40.0224300,116.3155160],[40.0224243,116.3154334],[40.0222947,116.3154488],[40.0222477,116.3147733],[40.0223673,116.3147591]]],
+// 11号学生公寓
+["11号学生公寓",Md,21,[[40.0224276,116.3156308],[40.0222921,116.3156480],[40.0223508,116.3164340],[40.0224863,116.3164168]]],
+// 12号学生公寓
+["12号学生公寓",Md,21,[[40.0227916,116.3146466],[40.0224745,116.3146873],[40.0224809,116.3147715],[40.0225821,116.3147585],[40.0226339,116.3154456],[40.0225362,116.3154582],[40.0225421,116.3155370],[40.0228468,116.3154978],[40.0228413,116.3154248],[40.0227984,116.3154303],[40.0227462,116.3147364],[40.0227979,116.3147297]]],
+// 13号学生公寓
+["13号学生公寓",Md,21,[[40.0228584,116.3156232],[40.0226533,116.3156498],[40.0226635,116.3157847],[40.0227290,116.3157762],[40.0227827,116.3164815],[40.0229222,116.3164634]]],
+// 国际教育与交流学院
+["国际教育与交流学院",Mb,14,[[40.0194897,116.3157986],[40.0194404,116.3157995],[40.0194490,116.3166028],[40.0194983,116.3166019]]],
+// 党员之家
+["党员之家",new THREE.MeshPhongMaterial({color:0xB22222,flatShading:true}),8,[[40.0192908,116.3163145],[40.0192179,116.3163108],[40.0192115,116.3165281],[40.0192844,116.3165318]]],
+// 阅览室
+["阅览室",Mo,6,[[40.0193415,116.3165392],[40.0192303,116.3165439],[40.0192290,116.3166426],[40.0193415,116.3166345]]],
+// 快递中心
+["快递中心",Mb,5,[[40.0216925,116.3173986],[40.0215719,116.3174143],[40.0215716,116.3174832],[40.0216981,116.3174656]]],
+// 田径场行政楼
+["田径场行政楼",Mo,10,[[40.0229946,116.3096989],[40.0230040,116.3098304],[40.0244930,116.3096496],[40.0244837,116.3095180]]],
+// 人文学院
+["人文学院（东平房）",Mb,8,[[40.0200354,116.3165487],[40.0198018,116.3165776],[40.0198270,116.3169257],[40.0198363,116.3170533],[40.0200339,116.3170289],[40.0200468,116.3172063],[40.0201433,116.3171944],[40.0201203,116.3168765],[40.0200597,116.3168839]]],
+// 攀岩馆
+["攀岩训练馆",Ms,12,[[40.0263888,116.3127435],[40.0257747,116.3128171],[40.0258386,116.3137250],[40.0264526,116.3136514]]],
+// 马厩
+["马厩",Mb,8,[[40.0270827,116.3118582],[40.0266886,116.3119035],[40.0267421,116.3126947],[40.0274754,116.3126103],[40.0274586,116.3123619],[40.0273899,116.3123698],[40.0273523,116.3118124],[40.0271951,116.3118305],[40.0272175,116.3121633],[40.0271042,116.3121764]]],
 ];
 
-/*========== HELPERS ==========*/
-const buildings=[],colliders=[];
-function lp(p,t){document.getElementById('load-bar').style.width=p+'%';document.getElementById('load-tip').textContent=t;}
-function bx(w,h,d,m){const o=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m);o.castShadow=true;o.receiveShadow=true;return o;}
-function pl(w,d,m,y=.05){const o=new THREE.Mesh(new THREE.PlaneGeometry(w,d),m);o.rotation.x=-Math.PI/2;o.position.y=y;o.receiveShadow=true;return o;}
+// Sport pitches (flat with color)
+const osmPitches=[
+["北京体育大学足球场",0x228B22,[[40.0244104,116.3122048],[40.0244818,116.3121788],[40.0245500,116.3121243],[40.0246154,116.3120554],[40.0246794,116.3119392],[40.0247160,116.3118086],[40.0247345,116.3116799],[40.0247308,116.3115637],[40.0247020,116.3114404],[40.0246605,116.3113339],[40.0246117,116.3112499],[40.0245418,116.3111775],[40.0244781,116.3111292],[40.0243898,116.3110970],[40.0243200,116.3111078],[40.0234491,116.3112365],[40.0233665,116.3112668],[40.0232930,116.3113143],[40.0232211,116.3114082],[40.0231755,116.3115029],[40.0231406,116.3116048],[40.0231303,116.3117228],[40.0231390,116.3118561],[40.0231677,116.3119983],[40.0232150,116.3121190],[40.0232745,116.3122182],[40.0233608,116.3122987],[40.0234508,116.3123343],[40.0235333,116.3123335]]],
+["足球场(中)",0x228B22,[[40.0249846,116.3123576],[40.0239196,116.3124469],[40.0240271,116.3141949],[40.0250823,116.3140928]]],
+["足球场(东)",0x228B22,[[40.0253517,116.3158859],[40.0243957,116.3160079],[40.0242731,116.3143698],[40.0252291,116.3142478]]],
+["网球场",0x2E7D32,[[40.0265038,116.3140728],[40.0255085,116.3142057],[40.0256138,116.3155496],[40.0266090,116.3154166]]],
+["篮球场",0x1565C0,[[40.0239240,116.3128773],[40.0233398,116.3129404],[40.0234209,116.3142187],[40.0240051,116.3141556]]],
+["西田径场",0xCC3333,[[40.0242994,116.3081950],[40.0229664,116.3083586],[40.0229808,116.3085759],[40.0229274,116.3086724],[40.0228945,116.3088226],[40.0228822,116.3089460],[40.0229068,116.3091016],[40.0229561,116.3092571],[40.0230424,116.3093752],[40.0230567,116.3095200],[40.0243652,116.3093322],[40.0243610,116.3091928],[40.0244062,116.3091069],[40.0244350,116.3090104],[40.0244555,116.3088977],[40.0244473,116.3087743],[40.0244309,116.3086671],[40.0243898,116.3085651],[40.0243610,116.3084847],[40.0243159,116.3084257]]],
+["英东田径场",0xCC3333,[[40.0244186,116.3097560],[40.0228534,116.3099384],[40.0229085,116.3105360],[40.0229643,116.3111401],[40.0245213,116.3109469],[40.0245048,116.3107377],[40.0245582,116.3106465],[40.0245911,116.3105553],[40.0246157,116.3104480],[40.0246198,116.3103193],[40.0246075,116.3102281],[40.0245829,116.3101423],[40.0245418,116.3100564],[40.0244802,116.3099813],[40.0244432,116.3099331]],"track"],
+["滑板场",0x888888,[[40.0282694,116.3134241],[40.0282282,116.3134228],[40.0282282,116.3130852],[40.0278304,116.3130989],[40.0278345,116.3133336],[40.0279741,116.3136484],[40.0279781,116.3138255],[40.0280785,116.3139763],[40.0281358,116.3139789],[40.0281458,116.3139960],[40.0282674,116.3138386]]],
+];
 
-/*========== COORDINATE SYSTEM ==========*/
-/*
- * Real data from OpenStreetMap (ODbL license)
- * Campus center: lat=40.0225, lon=116.3125
- * 1° lat ≈ 111,000m, 1° lon at 40°N ≈ 85,176m
- * Game: x = east(+), z = north(+)
- * Conversion: x=(lon-cLon)*85176, z=(lat-cLat)*111000
- */
-const cLat=40.0225,cLon=116.3125;
-function geo(lat,lon){return{x:(lon-cLon)*85176,z:(lat-cLat)*111000};}
+// Roads from OSM
+const osmRoads=[
+[[40.0186108,116.3149800],[40.0186962,116.3149688],[40.0188213,116.3149524],[40.0199172,116.3148084],[40.0199832,116.3148020],[40.0210625,116.3147000],[40.0211569,116.3146890],[40.0215077,116.3146552],[40.0218916,116.3146182],[40.0220690,116.3145882],[40.0223813,116.3145353],[40.0228560,116.3144549],[40.0253725,116.3141623],[40.0266020,116.3139647]],
+[[40.0224552,116.3096892],[40.0225166,116.3106090],[40.0226300,116.3118937],[40.0227397,116.3131368],[40.0228560,116.3144549]],
+[[40.0196738,116.3109764],[40.0196963,116.3112620],[40.0197569,116.3120328],[40.0197740,116.3122502],[40.0198742,116.3134728],[40.0199832,116.3148020]],
+[[40.0199832,116.3148020],[40.0200586,116.3157847],[40.0200640,116.3158554],[40.0201133,116.3160780],[40.0201923,116.3170549],[40.0201800,116.3172212]],
+[[40.0201923,116.3170549],[40.0213643,116.3168961],[40.0216136,116.3168709],[40.0224457,116.3167868],[40.0226607,116.3167288],[40.0229849,116.3166413],[40.0230362,116.3165903],[40.0230629,116.3164830],[40.0228560,116.3144549]],
+[[40.0211569,116.3146890],[40.0211937,116.3150806],[40.0212534,116.3157166],[40.0212761,116.3159577],[40.0213643,116.3168961]],
+[[40.0208860,116.3121054],[40.0209640,116.3133548],[40.0210625,116.3147000]],
+[[40.0209640,116.3133548],[40.0217685,116.3132637]],
+[[40.0208860,116.3121054],[40.0216227,116.3120196],[40.0216811,116.3120146],[40.0217685,116.3132637],[40.0218916,116.3146182]],
+[[40.0208860,116.3121054],[40.0208549,116.3121094],[40.0203563,116.3121744],[40.0197740,116.3122502]],
+[[40.0208860,116.3121054],[40.0208421,116.3114332],[40.0208064,116.3108871],[40.0208035,116.3108423]],
+[[40.0193307,116.3109791],[40.0195300,116.3109845],[40.0196738,116.3109764],[40.0202325,116.3109094],[40.0208035,116.3108423],[40.0209505,116.3108223],[40.0215962,116.3107344],[40.0221841,116.3106543],[40.0225166,116.3106090]],
+[[40.0216136,116.3168709],[40.0216510,116.3173877],[40.0207417,116.3175049],[40.0206419,116.3175784],[40.0205140,116.3175876],[40.0201548,116.3174512],[40.0201800,116.3172212]],
+[[40.0254311,116.3096003],[40.0251415,116.3096139],[40.0247862,116.3096112],[40.0245767,116.3094878],[40.0243551,116.3094532],[40.0224552,116.3096892]],
+[[40.0216811,116.3120146],[40.0226300,116.3118937]],
+[[40.0217685,116.3132637],[40.0227397,116.3131368]],
+];
 
-/*========== BUILDING FACTORY ==========*/
-function addB(name,lat,lon,w,d,h,matIdx,opts={}){
-  const p=geo(lat,lon);const x=p.x,z=p.z;
-  const mat=BC[matIdx%BC.length];
-  const g=new THREE.Group();
-  const body=bx(w,h,d,mat);body.position.y=h/2;g.add(body);
-  // windows
-  if(h>4){
-    const fl=Math.floor(h/3.2),wPF=Math.max(2,Math.floor(w/3.5)),wG=new THREE.PlaneGeometry(1.4,1.8);
-    for(let f=0;f<fl;f++){const wy=2.2+f*3.2;if(wy>h-1.5)break;
-      for(let i=0;i<wPF;i++){const wx=-w/2+(i+.5)*(w/wPF);
-        for(const s of[1,-1]){const wm=new THREE.Mesh(wG,M.glass);wm.position.set(wx,wy,s*(d/2+.02));if(s<0)wm.rotation.y=Math.PI;g.add(wm);}
-    }}
+lp(10,'渲染真实建筑轮廓…');
+
+/* ===== BUILD REAL POLYGON BUILDINGS ===== */
+function buildPoly(name,mat,h,coords,qid){
+  const pts=coords.map(c=>G(c[0],c[1]));
+  const shape=new THREE.Shape();
+  shape.moveTo(pts[0][0],pts[0][1]);
+  for(let i=1;i<pts.length;i++)shape.lineTo(pts[i][0],pts[i][1]);
+  shape.lineTo(pts[0][0],pts[0][1]);
+  const geo=new THREE.ExtrudeGeometry(shape,{depth:h,bevelEnabled:false});
+  const mesh=new THREE.Mesh(geo,mat);
+  mesh.rotation.x=-Math.PI/2;
+  mesh.position.y=0;
+  mesh.castShadow=true;mesh.receiveShadow=true;
+  scene.add(mesh);
+  // Calculate center
+  let cx=0,cz=0;for(const p of pts){cx+=p[0];cz+=p[1];}cx/=pts.length;cz/=pts.length;
+  let minX=Infinity,maxX=-Infinity,minZ=Infinity,maxZ=-Infinity;
+  for(const p of pts){minX=Math.min(minX,p[0]);maxX=Math.max(maxX,p[0]);minZ=Math.min(minZ,p[1]);maxZ=Math.max(maxZ,p[1]);}
+  const bd={name,x:cx,z:cz,w:maxX-minX,d:maxZ-minZ,h,group:mesh,bounds:{minX:minX-1,maxX:maxX+1,minZ:minZ-1,maxZ:maxZ+1},pts};
+  if(qid)bd.questId=qid;
+  blds.push(bd);
+  if(h>1)cols.push({minX:minX-1,maxX:maxX+1,minZ:minZ-1,maxZ:maxZ+1,maxY:h});
+}
+
+for(const b of osmBuildings)buildPoly(b[0],b[1],b[2],b[3],b[4]);
+
+lp(30,'渲染运动场地…');
+
+/* ===== FLAT PITCHES ===== */
+function buildPitch(name,color,coords,qid){
+  const pts=coords.map(c=>G(c[0],c[1]));
+  const shape=new THREE.Shape();
+  shape.moveTo(pts[0][0],pts[0][1]);
+  for(let i=1;i<pts.length;i++)shape.lineTo(pts[i][0],pts[i][1]);
+  const geo=new THREE.ShapeGeometry(shape);
+  const mesh=new THREE.Mesh(geo,new THREE.MeshLambertMaterial({color}));
+  mesh.rotation.x=-Math.PI/2;mesh.position.y=.08;mesh.receiveShadow=true;
+  scene.add(mesh);
+  let cx=0,cz=0;for(const p of pts){cx+=p[0];cz+=p[1];}cx/=pts.length;cz/=pts.length;
+  let mnX=Infinity,mxX=-Infinity,mnZ=Infinity,mxZ=-Infinity;
+  for(const p of pts){mnX=Math.min(mnX,p[0]);mxX=Math.max(mxX,p[0]);mnZ=Math.min(mnZ,p[1]);mxZ=Math.max(mxZ,p[1]);}
+  const bd={name,x:cx,z:cz,w:mxX-mnX,d:mxZ-mnZ,h:.2,group:mesh,bounds:{minX:mnX,maxX:mxX,minZ:mnZ,maxZ:mxZ},pts};
+  if(qid)bd.questId=qid;
+  blds.push(bd);
+}
+for(const p of osmPitches)buildPitch(p[0],p[1],p[2],p[3]);
+
+lp(45,'铺设真实道路…');
+
+/* ===== ROADS FROM OSM DATA ===== */
+function buildRoad(coords,width=3){
+  const pts=coords.map(c=>{const p=G(c[0],c[1]);return new THREE.Vector3(p[0],.07,p[1]);});
+  if(pts.length<2)return;
+  // Create road as tube along path
+  for(let i=0;i<pts.length-1;i++){
+    const a=pts[i],b=pts[i+1];
+    const dx=b.x-a.x,dz=b.z-a.z;
+    const len=Math.sqrt(dx*dx+dz*dz);
+    if(len<.5)continue;
+    const cx=(a.x+b.x)/2,cz=(a.z+b.z)/2;
+    const angle=Math.atan2(dx,dz);
+    const road=new THREE.Mesh(new THREE.PlaneGeometry(width,len),Mr);
+    road.rotation.x=-Math.PI/2;road.rotation.z=-angle;
+    road.position.set(cx,.06,cz);road.receiveShadow=true;
+    scene.add(road);
   }
-  if(opts.entrance){const pr=bx(Math.min(7,w*.3),3.5,2.5,M.concrete);pr.position.set(0,1.75,d/2+1.25);g.add(pr);}
-  if(opts.roof){const rf=bx(w+.5,.4,d+.5,BC[opts.roof]);rf.position.y=h+.2;g.add(rf);}
-  const base=bx(w+.3,.25,d+.3,M.concrete);base.position.y=.125;g.add(base);
-  if(opts.rot)g.rotation.y=opts.rot;
-  g.position.set(x,0,z);scene.add(g);
-  const pad=1;
-  const bd={name,x,z,w,d,h,group:g,bounds:{minX:x-w/2-pad,maxX:x+w/2+pad,minZ:z-d/2-pad,maxZ:z+d/2+pad}};
-  if(opts.qid)bd.questId=opts.qid;
-  buildings.push(bd);if(h>1)colliders.push({...bd.bounds,maxY:h});
-  return g;
 }
-function addArena(name,lat,lon,w,d,h,matIdx,opts={}){
-  const p=geo(lat,lon);const x=p.x,z=p.z;
-  const mat=BC[matIdx%BC.length];
-  const g=new THREE.Group();
-  const body=bx(w,h,d,mat);body.position.y=h/2;g.add(body);
-  const rf=new THREE.Mesh(new THREE.CylinderGeometry(w/2*.95,w/2*.95,d*1.02,24,1,false,0,Math.PI),M.metal);
-  rf.rotation.x=Math.PI/2;rf.rotation.z=Math.PI/2;rf.position.y=h;g.add(rf);
-  const pr=bx(8,4,3,M.concrete);pr.position.set(0,2,d/2+1.5);g.add(pr);
-  const base=bx(w+.3,.25,d+.3,M.concrete);base.position.y=.125;g.add(base);
-  g.position.set(x,0,z);scene.add(g);
-  const pad=2;
-  const bd={name,x,z,w,d,h:h+w/2*.6,group:g,bounds:{minX:x-w/2-pad,maxX:x+w/2+pad,minZ:z-d/2-pad,maxZ:z+d/2+pad+3}};
-  if(opts.qid)bd.questId=opts.qid;
-  buildings.push(bd);colliders.push({...bd.bounds,maxY:h});
-  return g;
-}
+for(const r of osmRoads)buildRoad(r,4);
 
-lp(5,'生成地形…');
+lp(55,'建造校门…');
 
-/*========== GROUND ==========*/
-scene.add(pl(1600,1600,M.ground,0));
-for(let i=0;i<50;i++){const a=(i/50)*Math.PI*2,dist=650+Math.random()*200;
-  const m=bx(15+Math.random()*35,12+Math.random()*50,15+Math.random()*35,new THREE.MeshLambertMaterial({color:new THREE.Color().setHSL(0,0,.45+Math.random()*.25)}));
-  m.position.set(Math.cos(a)*dist,m.geometry.parameters.height/2,Math.sin(a)*dist);scene.add(m);}
-
-lp(10,'铺设道路…');
-
-/*========== ROADS (based on real campus layout) ==========*/
-function road(x,z,w,d){const m=pl(w,d,M.road);m.position.set(x,.06,z);scene.add(m);}
-function pth(x,z,w,d){const m=pl(w,d,M.path);m.position.set(x,.07,z);scene.add(m);}
-// Main N-S axis
-road(0,0,10,900);
-// E-W roads at actual positions
-road(0,-370,500,8); // south near 体育馆
-road(0,-200,500,8); // mid-south near office bldgs
-road(0,-80,450,8);  // mid near library
-road(0,80,400,7);   // near sports fields
-road(0,200,400,7);  // north sports area
-road(0,350,350,6);  // far north
-// N-S side roads
-road(-200,0,7,700); road(200,0,7,700);
-road(100,0,6,600); road(-100,0,6,600);
-road(300,-100,6,500); road(350,0,6,400);
-// Outer boundary
-road(-280,0,6,900); road(420,0,6,900);
-road(0,-480,720,6); road(0,450,720,6);
-// Paths
-pth(50,-300,3,200);pth(-50,-300,3,200);pth(200,100,3,300);pth(300,-50,3,300);
-
-lp(18,'建造校门…');
-
-/*========== 南大门 (OSM: campus boundary at ~40.019, south side) ==========*/
-(function(){
-  const p=geo(40.0188,116.3125);const g=new THREE.Group();
-  for(const sx of[-12,12]){const pi=bx(3.5,14,3,M.gate);pi.position.set(sx,7,0);g.add(pi);const cap=bx(4.5,1,4,M.gate);cap.position.set(sx,14.5,0);g.add(cap);}
-  const beam=bx(28,2.5,3,M.gate);beam.position.set(0,12,0);g.add(beam);
-  const sign=bx(22,3.5,.6,M.darkRed);sign.position.set(0,15,0);g.add(sign);
+/* ===== SOUTH GATE ===== */
+(function(){const p=G(40.0186,116.3125);const g=new THREE.Group();
+  for(const sx of[-12,12]){const pi=bx(3.5,14,3,Mgate);pi.position.set(sx,7,0);g.add(pi);const cap=bx(4.5,1,4,Mgate);cap.position.set(sx,14.5,0);g.add(cap);}
+  const beam=bx(28,2.5,3,Mgate);beam.position.set(0,12,0);g.add(beam);
+  const sign=bx(22,3.5,.6,MdR);sign.position.set(0,15,0);g.add(sign);
   const tc=document.createElement('canvas');tc.width=512;tc.height=72;const tx=tc.getContext('2d');tx.fillStyle='#fff';tx.font='bold 56px "Microsoft YaHei","SimHei",sans-serif';tx.textAlign='center';tx.fillText('北京体育大学',256,55);
   const tm=new THREE.Mesh(new THREE.PlaneGeometry(18,2.5),new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(tc),transparent:true}));tm.position.set(0,15,.35);g.add(tm);
-  for(const sx of[-20,20]){const sp=bx(2,9,2.5,M.gate);sp.position.set(sx,4.5,0);g.add(sp);}
-  for(const sx of[-26,26]){const gd=bx(7,3.5,5,BC[2]);gd.position.set(sx,1.75,0);g.add(gd);}
-  g.position.set(p.x,0,p.z);scene.add(g);
-  buildings.push({name:'南大门（正门）',x:p.x,z:p.z,w:60,d:8,h:16,group:g,bounds:{minX:p.x-32,maxX:p.x+32,minZ:p.z-5,maxZ:p.z+5},questId:'gate'});
-})();
-// 北门
-(function(){const p=geo(40.0285,116.3125);const g=new THREE.Group();
-  for(const sx of[-8,8]){const pi=bx(2.5,8,2.5,BC[1]);pi.position.set(sx,4,0);g.add(pi);}
-  const b=bx(20,1.5,2,BC[1]);b.position.set(0,8.5,0);g.add(b);
-  g.position.set(p.x,0,p.z);scene.add(g);
-  buildings.push({name:'北门',x:p.x,z:p.z,w:22,d:5,h:9,group:g,bounds:{minX:p.x-12,maxX:p.x+12,minZ:p.z-3,maxZ:p.z+3}});
+  for(const sx of[-20,20]){const sp=bx(2,9,2.5,Mgate);sp.position.set(sx,4.5,0);g.add(sp);}
+  for(const sx of[-26,26]){const gd=bx(7,3.5,5,Mo);gd.position.set(sx,1.75,0);g.add(gd);}
+  g.position.set(p[0],0,p[1]);scene.add(g);
+  blds.push({name:'南大门（正门）',x:p[0],z:p[1],w:60,d:8,h:16,group:g,bounds:{minX:p[0]-32,maxX:p[0]+32,minZ:p[1]-5,maxZ:p[1]+5},questId:'gate'});
 })();
 
-lp(22,'铺设冠军之路…');
-
-/*========== 冠军之路 ==========*/
-(function(){
-  const g=new THREE.Group();g.add(pl(8,200,M.gold,.08));
-  for(let i=0;i<50;i++){const px=(Math.random()-.5)*5,pz=-95+i*3.8;
-    const br=bx(1,.06,.8,new THREE.MeshPhongMaterial({color:0xC8A838,shininess:40}));br.position.set(px,.11,pz);g.add(br);
-    if(i%3===0){const pl2=bx(.8,.3,.6,M.gold);pl2.position.set(px+(Math.random()-.5)*2,.15,pz);g.add(pl2);}
-  }
-  for(let i=0;i<20;i++){for(const sx of[-5.5,5.5]){
-    const pole=new THREE.Mesh(new THREE.CylinderGeometry(.06,.08,4.5),M.metal);pole.position.set(sx,2.25,-95+i*10);g.add(pole);
-    const lamp=new THREE.Mesh(new THREE.SphereGeometry(.25,6,4),new THREE.MeshPhongMaterial({color:0xffffdd,emissive:0xffff88,emissiveIntensity:.15}));lamp.position.set(sx,4.7,-95+i*10);g.add(lamp);
+/* ===== 冠军之路 ===== */
+(function(){const p=G(40.0193,116.3125);const g=new THREE.Group();
+  const pm=new THREE.Mesh(new THREE.PlaneGeometry(8,180),Mgold);pm.rotation.x=-Math.PI/2;pm.position.y=.08;g.add(pm);
+  for(let i=0;i<40;i++){const px=(Math.random()-.5)*5,pz=-85+i*4.2;const br=bx(1,.06,.8,new THREE.MeshPhongMaterial({color:0xC8A838,shininess:40}));br.position.set(px,.11,pz);g.add(br);}
+  for(let i=0;i<18;i++){for(const sx of[-5.5,5.5]){
+    const pole=new THREE.Mesh(new THREE.CylinderGeometry(.06,.08,4.5),Mmt);pole.position.set(sx,2.25,-85+i*10);g.add(pole);
+    const lamp=new THREE.Mesh(new THREE.SphereGeometry(.2,6,4),new THREE.MeshPhongMaterial({color:0xffffdd,emissive:0xffff88,emissiveIntensity:.15}));lamp.position.set(sx,4.5,-85+i*10);g.add(lamp);
   }}
-  const stone=bx(4,2.5,1.2,M.darkRed);stone.position.set(0,1.25,105);g.add(stone);
-  const cp=geo(40.0195,116.3125);
-  g.position.set(cp.x,0,cp.z);scene.add(g);
-  buildings.push({name:'冠军之路',x:cp.x,z:cp.z,w:8,d:200,h:.2,group:g,bounds:{minX:cp.x-6,maxX:cp.x+6,minZ:cp.z-100,maxZ:cp.z+100},questId:'champion'});
+  g.position.set(p[0],0,p[1]);scene.add(g);
+  blds.push({name:'冠军之路',x:p[0],z:p[1],w:8,d:180,h:.2,group:g,bounds:{minX:p[0]-6,maxX:p[0]+6,minZ:p[1]-95,maxZ:p[1]+95},questId:'champion'});
 })();
 
-lp(28,'建造教学楼…');
-
-/*=============================================
-  BUILDINGS PLACED USING OSM COORDINATES
-  Data source: OpenStreetMap (ODbL)
-=============================================*/
-
-// 教学楼 (40.0214, 116.3139)
-addB('教学楼',40.0214,116.3139,55,20,20,0,{entrance:true,roof:7});
-// 第二教学楼 (40.0215, 116.3125)
-addB('第二教学楼',40.0215,116.3125,45,18,18,0,{entrance:true,roof:7});
-// 南办公楼 (40.0201, 116.3128)
-addB('南办公楼',40.0201,116.3128,50,18,16,2,{entrance:true,roof:8});
-// 北办公楼 (40.0207, 116.3127)
-addB('北办公楼',40.0207,116.3127,50,18,16,2,{entrance:true,roof:8});
-
-lp(35,'建造图书馆…');
-
-// 图书馆 (40.0213, 116.3125)
-(function(){
-  const p=geo(40.0213,116.3125);const g=new THREE.Group();
-  const main=bx(50,24,28,BC[2]);main.position.y=12;g.add(main);
-  const gf=new THREE.Mesh(new THREE.PlaneGeometry(48,22),M.glass);gf.position.set(0,12,14.1);g.add(gf);
-  const gb=new THREE.Mesh(new THREE.PlaneGeometry(48,22),M.glass);gb.position.set(0,12,-14.1);gb.rotation.y=Math.PI;g.add(gb);
-  for(let i=0;i<6;i++){const step=bx(18-i*.5,.25,1.2,M.concrete);step.position.set(0,.125+i*.25,15+i*1.2);g.add(step);}
-  const top=bx(52,.8,30,M.metal);top.position.y=24.4;g.add(top);
-  const wing=bx(15,18,18,BC[2]);wing.position.set(25,9,-6);g.add(wing);
-  g.position.set(p.x,0,p.z);scene.add(g);
-  buildings.push({name:'图书馆',x:p.x,z:p.z,w:60,d:32,h:24,group:g,bounds:{minX:p.x-32,maxX:p.x+32,minZ:p.z-18,maxZ:p.z+18},questId:'library'});
-  colliders.push({minX:p.x-32,maxX:p.x+32,minZ:p.z-18,maxZ:p.z+18,maxY:24});
-})();
-
-lp(42,'建造体育场馆…');
-
-// 英东田径场 (main track, 40.0237, 116.3104)
-(function(){
-  const p=geo(40.0237,116.3104);const g=new THREE.Group();
-  const oRx=68,oRy=42,iRx=58,iRy=32;
-  const shape=new THREE.Shape();
-  for(let a=0;a<=Math.PI*2+.01;a+=.04){shape[a===0?'moveTo':'lineTo'](Math.cos(a)*oRx,Math.sin(a)*oRy);}
-  const hole=new THREE.Path();
-  for(let a=0;a<=Math.PI*2+.01;a+=.04){hole[a===0?'moveTo':'lineTo'](Math.cos(a)*iRx,Math.sin(a)*iRy);}
-  shape.holes.push(hole);
-  const tm=new THREE.Mesh(new THREE.ShapeGeometry(shape),M.track);tm.rotation.x=-Math.PI/2;tm.position.y=.1;g.add(tm);
-  const is2=new THREE.Shape();for(let a=0;a<=Math.PI*2+.01;a+=.04){is2[a===0?'moveTo':'lineTo'](Math.cos(a)*iRx,Math.sin(a)*iRy);}
-  const gm=new THREE.Mesh(new THREE.ShapeGeometry(is2),M.grass);gm.rotation.x=-Math.PI/2;gm.position.y=.08;g.add(gm);
-  for(let l=0;l<8;l++){const rx=59+l*1.22,ry=33+l*1.22;const pts=[];for(let a=0;a<=Math.PI*2+.01;a+=.04)pts.push(new THREE.Vector3(Math.cos(a)*rx,.12,Math.sin(a)*ry));g.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts),new THREE.LineBasicMaterial({color:0xffffff})));}
-  for(const side of[-1,1]){const st=bx(110,10,14,M.concrete);st.position.set(0,5,side*52);g.add(st);}
-  g.position.set(p.x,0,p.z);scene.add(g);
-  buildings.push({name:'英东田径场',x:p.x,z:p.z,w:140,d:110,h:.3,group:g,bounds:{minX:p.x-72,maxX:p.x+72,minZ:p.z-56,maxZ:p.z+56},questId:'track'});
-})();
-
-// 西田径场 (40.0237, 116.3089)
-(function(){
-  const p=geo(40.0237,116.3089);const g=new THREE.Group();
-  const tm2=new THREE.Mesh(new THREE.RingGeometry(48,60,48),M.track);tm2.rotation.x=-Math.PI/2;tm2.position.y=.1;g.add(tm2);
-  const gm2=new THREE.Mesh(new THREE.CircleGeometry(48,48),M.grass);gm2.rotation.x=-Math.PI/2;gm2.position.y=.08;g.add(gm2);
-  g.position.set(p.x,0,p.z);scene.add(g);
-  buildings.push({name:'西田径场',x:p.x,z:p.z,w:130,d:100,h:.2,group:g,bounds:{minX:p.x-65,maxX:p.x+65,minZ:p.z-50,maxZ:p.z+50}});
-})();
-
-// 体育馆群 - OSM 真实位置
-addArena('北京体育大学体育馆',40.0192,116.3125,60,50,18,4,{qid:'gym'});
-addArena('篮球馆',40.0221,116.3113,50,35,16,4);
-addArena('田径馆',40.0220,116.3093,50,30,14,4);
-addArena('大鹏馆',40.0214,116.3095,40,28,14,4);
-addArena('网球综合训练馆',40.0208,116.3096,40,30,13,4);
-addArena('游泳馆',40.0200,116.3099,45,35,14,5,{qid:'swim'});
-addArena('体操馆',40.0223,116.3138,40,25,15,1);
-addArena('武术馆',40.0223,116.3126,35,22,12,6);
-addArena('国家训练基地综合馆',40.0261,116.3123,55,40,16,4);
-addB('室内马术馆',40.0269,116.3099,45,30,12,4);
-
-lp(55,'建造宿舍区…');
-
-// 学生公寓 - OSM 真实位置
-addB('1号学生公寓',40.0198,116.3155,30,14,21,3,{entrance:true,roof:8});
-addB('2号学生公寓',40.0202,116.3154,28,13,21,3,{entrance:true,roof:8});
-addB('3号学生公寓（小白楼）',40.0204,116.3161,30,14,21,2,{entrance:true,roof:8});
-addB('4号学生公寓',40.0234,116.3156,28,13,21,3,{entrance:true,roof:8});
-addB('5号学生公寓',40.0208,116.3162,28,13,21,3,{entrance:true,roof:8});
-addB('6号学生公寓',40.0210,116.3153,30,14,21,3,{entrance:true,roof:8});
-addB('8号学生公寓',40.0220,116.3152,26,12,21,3,{entrance:true,roof:8});
-addB('10号学生公寓',40.0223,116.3151,28,13,21,3,{entrance:true,roof:8});
-addB('11号学生公寓',40.0224,116.3160,28,13,21,3,{entrance:true,roof:8});
-addB('12号学生公寓',40.0227,116.3151,30,14,21,3,{entrance:true,roof:8});
-addB('13号学生公寓',40.0228,116.3161,28,13,21,3,{entrance:true,roof:8});
-
-lp(62,'建造食堂…');
-
-// 食堂 - OSM 真实位置
-addB('北京体育大学食堂',40.0216,116.3155,40,25,11,0,{entrance:true,roof:7,qid:'canteen'});
-addB('教师食堂',40.0203,116.3165,25,18,10,0,{entrance:true,roof:7});
-
-lp(65,'建造其他设施…');
-
-// 其他设施
-addB('国际教育与交流学院',40.0195,116.3162,30,16,14,1,{entrance:true,roof:8});
-addB('人文学院（东平房）',40.0200,116.3169,28,12,8,0,{entrance:true,roof:7});
-addB('党员之家',40.0193,116.3164,15,12,8,6,{entrance:true,roof:7});
-addB('阅览室',40.0193,116.3166,18,12,6,2,{entrance:true});
-addB('快递中心',40.0216,116.3174,18,12,5,1,{entrance:true});
-addB('田径场行政楼',40.0237,116.3097,20,14,10,2,{entrance:true,roof:8});
-
-// 足球场 (OSM)
-(function(){
-  const ps=[{lat:40.0239,lon:116.3117,name:'北体足球场'},{lat:40.0245,lon:116.3133,name:'中心足球场'},{lat:40.0248,lon:116.3151,name:'东足球场'}];
-  for(const f of ps){const p=geo(f.lat,f.lon);const gm=pl(90,55,M.grass,.08);gm.position.set(p.x,.08,p.z);scene.add(gm);
-    buildings.push({name:f.name,x:p.x,z:p.z,w:90,d:55,h:.2,group:gm,bounds:{minX:p.x-47,maxX:p.x+47,minZ:p.z-30,maxZ:p.z+30}});}
-})();
-
-// 网球场 (40.0261, 116.3148)
-(function(){const p=geo(40.0261,116.3148);const gm=pl(50,30,new THREE.MeshLambertMaterial({color:0x2E7D32}),.08);gm.position.set(p.x,.08,p.z);scene.add(gm);
-  buildings.push({name:'网球场',x:p.x,z:p.z,w:50,d:30,h:.2,group:gm,bounds:{minX:p.x-27,maxX:p.x+27,minZ:p.z-17,maxZ:p.z+17}});})();
-
-// 篮球场 (40.0237, 116.3135)
-(function(){const p=geo(40.0237,116.3135);const gm=pl(35,25,new THREE.MeshLambertMaterial({color:0x1565C0}),.08);gm.position.set(p.x,.08,p.z);scene.add(gm);
-  buildings.push({name:'室外篮球场',x:p.x,z:p.z,w:35,d:25,h:.2,group:gm,bounds:{minX:p.x-19,maxX:p.x+19,minZ:p.z-14,maxZ:p.z+14}});})();
-
-// 滑板场 (40.0280, 116.3135)
-(function(){const p=geo(40.0280,116.3135);const gm=pl(35,20,M.concrete,.08);gm.position.set(p.x,.08,p.z);scene.add(gm);
-  buildings.push({name:'滑板场',x:p.x,z:p.z,w:35,d:20,h:.2,group:gm,bounds:{minX:p.x-19,maxX:p.x+19,minZ:p.z-12,maxZ:p.z+12}});})();
-
-// 马术基地 (40.0270, 116.3110)
-(function(){const p=geo(40.0270,116.3110);const gm=pl(100,60,new THREE.MeshLambertMaterial({color:0x8B7355}),.07);gm.position.set(p.x,.07,p.z);scene.add(gm);
-  buildings.push({name:'马术训练基地',x:p.x,z:p.z,w:100,d:60,h:.2,group:gm,bounds:{minX:p.x-52,maxX:p.x+52,minZ:p.z-32,maxZ:p.z+32}});})();
-
-// 校训石
-(function(){const p=geo(40.0190,116.3125);const s=bx(5,2.8,1.5,M.darkRed);s.position.set(p.x,1.4,p.z);scene.add(s);
-  buildings.push({name:'校训石·追求卓越',x:p.x,z:p.z,w:5,d:1.5,h:2.8,group:s,bounds:{minX:p.x-4,maxX:p.x+4,minZ:p.z-2,maxZ:p.z+2}});})();
-
-// 旗杆广场
-(function(){const p=geo(40.0205,116.3125);const g=new THREE.Group();
-  const fl=new THREE.Mesh(new THREE.CircleGeometry(22,32),M.concrete);fl.rotation.x=-Math.PI/2;fl.position.y=.07;g.add(fl);
-  const pole=new THREE.Mesh(new THREE.CylinderGeometry(.08,.12,22),M.metal);pole.position.y=11;g.add(pole);
+/* ===== 旗杆广场 ===== */
+(function(){const p=G(40.0205,116.3125);const g=new THREE.Group();
+  const fl=new THREE.Mesh(new THREE.CircleGeometry(20,32),Mc);fl.rotation.x=-Math.PI/2;fl.position.y=.07;g.add(fl);
+  const pole=new THREE.Mesh(new THREE.CylinderGeometry(.08,.12,22),Mmt);pole.position.y=11;g.add(pole);
   const flag=new THREE.Mesh(new THREE.PlaneGeometry(3.2,2.1),new THREE.MeshLambertMaterial({color:0xFF0000,side:THREE.DoubleSide}));flag.position.set(1.6,20.5,0);g.add(flag);
-  g.position.set(p.x,0,p.z);scene.add(g);
-  buildings.push({name:'旗杆广场',x:p.x,z:p.z,w:44,d:44,h:.2,group:g,bounds:{minX:p.x-24,maxX:p.x+24,minZ:p.z-24,maxZ:p.z+24}});
+  g.position.set(p[0],0,p[1]);scene.add(g);
+  blds.push({name:'旗杆广场',x:p[0],z:p[1],w:40,d:40,h:.2,group:g,bounds:{minX:p[0]-22,maxX:p[0]+22,minZ:p[1]-22,maxZ:p[1]+22}});
 })();
 
-lp(72,'种植绿化…');
+lp(60,'地形与绿化…');
 
-/*========== 树木 ==========*/
-function addTree(x,z,h=7,type=0){
-  const t=new THREE.Group();const trH=h*.38;
-  const trunk=new THREE.Mesh(new THREE.CylinderGeometry(.12,.22,trH,5),M.trunk);trunk.position.y=trH/2;trunk.castShadow=true;t.add(trunk);
-  const lm=M.leaf[type%3];
-  if(type%3===0){const cr=new THREE.Mesh(new THREE.SphereGeometry(h*.32,7,5),lm);cr.position.y=trH+h*.18;cr.castShadow=true;t.add(cr);}
-  else if(type%3===1){const cr=new THREE.Mesh(new THREE.ConeGeometry(h*.25,h*.55,6),lm);cr.position.y=trH+h*.27;cr.castShadow=true;t.add(cr);}
-  else{for(let i=0;i<3;i++){const r=h*.28*(1-i*.2);const c=new THREE.Mesh(new THREE.SphereGeometry(r,6,4),lm);c.position.set((Math.random()-.5)*r*.8,trH+i*h*.14,(Math.random()-.5)*r*.8);c.castShadow=true;t.add(c);}}
-  t.position.set(x,0,z);scene.add(t);
+/* ===== GROUND ===== */
+const groundMesh=new THREE.Mesh(new THREE.PlaneGeometry(1600,1600),Mw);groundMesh.rotation.x=-Math.PI/2;groundMesh.receiveShadow=true;scene.add(groundMesh);
+// Fix: use proper method
+const gnd=new THREE.Mesh(new THREE.PlaneGeometry(1600,1600),Mw);
+gnd.rotation.x=-Math.PI/2;gnd.receiveShadow=true;
+// Already added above, just add city buildings
+for(let i=0;i<50;i++){const a=(i/50)*Math.PI*2,d=650+Math.random()*200;const m=bx(15+Math.random()*35,12+Math.random()*50,15+Math.random()*35,new THREE.MeshLambertMaterial({color:new THREE.Color().setHSL(0,0,.45+Math.random()*.25)}));m.position.set(Math.cos(a)*d,m.geometry.parameters.height/2,Math.sin(a)*d);scene.add(m);}
+
+/* Trees */
+function addTree(x,z,h=7,t=0){
+  const tr=new THREE.Group();const tH=h*.38;
+  const trunk=new THREE.Mesh(new THREE.CylinderGeometry(.12,.22,tH,5),Mtrunk);trunk.position.y=tH/2;trunk.castShadow=true;tr.add(trunk);
+  const lm=Mleaf[t%3];
+  if(t%3===0){const cr=new THREE.Mesh(new THREE.SphereGeometry(h*.3,7,5),lm);cr.position.y=tH+h*.17;cr.castShadow=true;tr.add(cr);}
+  else if(t%3===1){const cr=new THREE.Mesh(new THREE.ConeGeometry(h*.25,h*.5,6),lm);cr.position.y=tH+h*.25;cr.castShadow=true;tr.add(cr);}
+  else{for(let i=0;i<3;i++){const r=h*.25*(1-i*.2);const c=new THREE.Mesh(new THREE.SphereGeometry(r,6,4),lm);c.position.set((Math.random()-.5)*r*.7,tH+i*h*.12,(Math.random()-.5)*r*.7);c.castShadow=true;tr.add(c);}}
+  tr.position.set(x,0,z);scene.add(tr);
 }
-function blocked(x,z,pad=5){for(const c of colliders)if(x>c.minX-pad&&x<c.maxX+pad&&z>c.minZ-pad&&z<c.maxZ+pad)return true;return false;}
-// 行道树
-for(let z=-450;z<450;z+=14){for(const dx of[-8,8]){if(!blocked(dx,z))addTree(dx+(Math.random()-.5)*2,z+(Math.random()-.5)*4,5+Math.random()*4,Math.floor(Math.random()*3));}}
-// 绿化带
-const tz=[{cx:-40,cz:-150,r:30,n:12},{cx:40,cz:-150,r:30,n:12},{cx:-150,cz:0,r:25,n:10},{cx:150,cz:0,r:25,n:10},{cx:0,cz:100,r:20,n:8},{cx:-80,cz:300,r:30,n:12},{cx:80,cz:300,r:30,n:12},{cx:250,cz:150,r:20,n:8},{cx:-250,cz:100,r:25,n:10},{cx:0,cz:400,r:35,n:15},{cx:-200,cz:-200,r:20,n:8},{cx:350,cz:-100,r:20,n:8}];
-for(const z2 of tz){for(let i=0;i<z2.n;i++){const a=Math.random()*Math.PI*2,d=Math.random()*z2.r;const tx=z2.cx+Math.cos(a)*d,tz2=z2.cz+Math.sin(a)*d;if(!blocked(tx,tz2,3))addTree(tx,tz2,4+Math.random()*6,Math.floor(Math.random()*3));}}
-// 花坛
-function fb(x,z,r){const bed=new THREE.Mesh(new THREE.CylinderGeometry(r,r,.25,12),new THREE.MeshLambertMaterial({color:0x6B4226}));bed.position.set(x,.125,z);scene.add(bed);const cs=[0xff6b6b,0xffeb3b,0xff69b4,0x9c27b0,0xff5722];for(let i=0;i<20;i++){const a=Math.random()*Math.PI*2,d2=Math.random()*r*.8;const fl=new THREE.Mesh(new THREE.SphereGeometry(.15+Math.random()*.12,4,3),new THREE.MeshLambertMaterial({color:cs[Math.floor(Math.random()*cs.length)]}));fl.position.set(x+Math.cos(a)*d2,.4,z+Math.sin(a)*d2);scene.add(fl);}}
-const fp=geo(40.0205,116.3125);
-fb(fp.x-20,fp.z,4);fb(fp.x+20,fp.z,4);fb(fp.x,fp.z+30,3);fb(fp.x,fp.z-30,3);
+function blk(x,z,pad=5){for(const c of cols)if(x>c.minX-pad&&x<c.maxX+pad&&z>c.minZ-pad&&z<c.maxZ+pad)return true;return false;}
+// Scatter trees
+for(let i=0;i<400;i++){const x=(Math.random()-.5)*800,z=(Math.random()-.5)*800;if(!blk(x,z,4))addTree(x,z,4+Math.random()*5,Math.floor(Math.random()*3));}
 
-lp(82,'生成NPC…');
+lp(75,'生成NPC…');
 
-/*========== NPC ==========*/
+/* ===== NPC ===== */
 const npcs=[];
 const npcD={
-'保安大叔':['同学你好！欢迎来到北京体育大学！','南大门是正门，面朝信息路48号。24小时有人值班~','校园里注意安全哦。'],
-'校园导游':['欢迎来北体！校园总面积75.5万平方米，近100个室内外训练场馆！','从南门进来是冠军之路，往北走是旗杆广场，再往北是各个场馆区。','东边是宿舍食堂区，西边是田径场和各种训练馆。好好逛吧！'],
-'体育生小王':['嘿！我是田径专项的，每天在英东田径场训练！','我们学校出了很多奥运冠军：许海峰、邓亚萍、林丹…','校训"追求卓越"，更快更高更强！'],
-'图书馆管理员':['欢迎来图书馆！体育类文献全国最全。','早7点到晚10点开放，请保持安静~'],
-'篮球队队长':['来打球啊？篮球馆在这边，专业木地板！','CUBA联赛我们成绩一直很好，想入队先过体能测试！'],
-'食堂阿姨':['来啦！今天红烧排骨、宫保鸡丁！','运动员饭量大着呢～中午最挤~'],
-'武术教练':['我是中国武术学院的教练。武术馆就在这！','太极、长拳、南拳、散打都有教。习武先修德！'],
-'游泳健将':['刚游完3000米！游泳馆50米赛道，水温26°C。','想学游泳可以报校内课程！'],
-'体操运动员':['体操每天训练6小时以上，看着帅其实很辛苦~','坚持每天进步一点点！'],
-'乒乓球爱好者':['国球不能丢！🏓 每天打两小时！','虽然不是专业的但打了三年了。'],
-'研究生学姐':['我是运动人体科学的研二，研究运动对心血管系统的影响。','体科所有高速摄像机、力量测试平台，很先进。'],
-'马术教练':['这里是马术训练基地！我们有室内马术馆和室外训练场。','北体是少数有马术专业的大学之一。'],
+'保安大叔':['欢迎来到北京体育大学！南大门就是正门，面朝信息路48号。','校园里注意安全，有事找我！'],
+'校园导游':['北体总面积75.5万㎡，近100个训练场馆！','从南门进来是冠军之路→旗杆广场→各体育场馆。','东边是宿舍食堂区，西边是田径场和训练馆群。'],
+'体育生小王':['我在英东田径场训练！学校出过许海峰、邓亚萍、林丹…','校训"追求卓越"，更快更高更强！'],
+'图书馆管理员':['体育类文献全国最全，早7晚10开放~'],
+'篮球队队长':['篮球馆专业木地板！CUBA我们一直很强！'],
+'食堂阿姨':['今天红烧排骨、宫保鸡丁！运动员饭量大~'],
+'武术教练':['武术馆太极、长拳、散打都有。习武先修德！'],
+'游泳健将':['游泳馆50米赛道，水温26°C。一起游？'],
+'马术教练':['这是马术训练基地！室内室外场地都有。'],
 };
 function createNPC(skin,shirt,pants,hat=false){
   const g=new THREE.Group();g.userData={parts:{}};const p=g.userData.parts;
@@ -448,223 +352,134 @@ function createNPC(skin,shirt,pants,hat=false){
   p.head=new THREE.Mesh(new THREE.SphereGeometry(.19,8,6),new THREE.MeshPhongMaterial({color:skin}));p.head.position.y=1.62;g.add(p.head);
   const hair=new THREE.Mesh(new THREE.SphereGeometry(.21,8,5,0,Math.PI*2,0,Math.PI*.5),new THREE.MeshLambertMaterial({color:0x1a1a1a}));hair.position.set(0,1.68,0);g.add(hair);
   const lM=new THREE.MeshPhongMaterial({color:pants}),lG=new THREE.BoxGeometry(.16,.55,.18);
-  p.legL=new THREE.Mesh(lG,lM);p.legL.position.set(-.11,.43,0);g.add(p.legL);
-  p.legR=new THREE.Mesh(lG,lM);p.legR.position.set(.11,.43,0);g.add(p.legR);
+  p.legL=new THREE.Mesh(lG,lM);p.legL.position.set(-.11,.43,0);g.add(p.legL);p.legR=new THREE.Mesh(lG,lM);p.legR.position.set(.11,.43,0);g.add(p.legR);
   const aG=new THREE.BoxGeometry(.13,.5,.14),aM=new THREE.MeshPhongMaterial({color:shirt});
-  p.armL=new THREE.Mesh(aG,aM);p.armL.position.set(-.35,1,0);g.add(p.armL);
-  p.armR=new THREE.Mesh(aG,aM);p.armR.position.set(.35,1,0);g.add(p.armR);
-  if(hat){const h=new THREE.Mesh(new THREE.CylinderGeometry(.2,.23,.12,8),new THREE.MeshPhongMaterial({color:0xCC0000}));h.position.y=1.84;g.add(h);}
+  p.armL=new THREE.Mesh(aG,aM);p.armL.position.set(-.35,1,0);g.add(p.armL);p.armR=new THREE.Mesh(aG,aM);p.armR.position.set(.35,1,0);g.add(p.armR);
+  if(hat){const h2=new THREE.Mesh(new THREE.CylinderGeometry(.2,.23,.12,8),new THREE.MeshPhongMaterial({color:0xCC0000}));h2.position.y=1.84;g.add(h2);}
   return g;
 }
 function npcTag(npc,name){const c=document.createElement('canvas');c.width=256;c.height=48;const cx=c.getContext('2d');cx.fillStyle='rgba(0,0,0,.6)';cx.roundRect(4,4,248,40,8);cx.fill();cx.fillStyle='#fff';cx.font='bold 22px "Microsoft YaHei"';cx.textAlign='center';cx.fillText(name,128,34);const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(c),transparent:true}));sp.position.y=2.15;sp.scale.set(2.8,.55,1);npc.add(sp);}
 const npcSpawns=[
-  {name:'保安大叔',lat:40.0189,lon:116.3130,skin:0xDEB887,shirt:0x000060,pants:0x000030,hat:true},
+  {name:'保安大叔',lat:40.0187,lon:116.3130,skin:0xDEB887,shirt:0x000060,pants:0x000030,hat:true},
   {name:'校园导游',lat:40.0195,lon:116.3120,skin:0xF5DEB3,shirt:0xFF4500,pants:0x2a2a2a},
-  {name:'体育生小王',lat:40.0237,lon:116.3110,skin:0xDEB887,shirt:0xCC0000,pants:0x1a1a1a},
-  {name:'图书馆管理员',lat:40.0212,lon:116.3122,skin:0xF5DEB3,shirt:0x4169E1,pants:0x2F4F4F},
-  {name:'篮球队队长',lat:40.0220,lon:116.3110,skin:0xDEB887,shirt:0xFF6347,pants:0x1a1a1a},
-  {name:'食堂阿姨',lat:40.0215,lon:116.3152,skin:0xF5DEB3,shirt:0xffffff,pants:0x555555,hat:true},
-  {name:'武术教练',lat:40.0222,lon:116.3124,skin:0xD2B48C,shirt:0xffffff,pants:0x1a1a1a},
-  {name:'游泳健将',lat:40.0199,lon:116.3096,skin:0xF5DEB3,shirt:0x1E90FF,pants:0x000060},
-  {name:'体操运动员',lat:40.0222,lon:116.3135,skin:0xFFE4C4,shirt:0xFF1493,pants:0xffffff},
-  {name:'乒乓球爱好者',lat:40.0225,lon:116.3140,skin:0xDEB887,shirt:0xFFD700,pants:0x2a2a2a},
-  {name:'研究生学姐',lat:40.0228,lon:116.3158,skin:0xF5DEB3,shirt:0x2F4F4F,pants:0x333333},
-  {name:'马术教练',lat:40.0268,lon:116.3100,skin:0xD2B48C,shirt:0x8B4513,pants:0x333333},
+  {name:'体育生小王',lat:40.0237,lon:116.3105,skin:0xDEB887,shirt:0xCC0000,pants:0x1a1a1a},
+  {name:'图书馆管理员',lat:40.0214,lon:116.3125,skin:0xF5DEB3,shirt:0x4169E1,pants:0x2F4F4F},
+  {name:'篮球队队长',lat:40.0221,lon:116.3113,skin:0xDEB887,shirt:0xFF6347,pants:0x1a1a1a},
+  {name:'食堂阿姨',lat:40.0216,lon:116.3154,skin:0xF5DEB3,shirt:0xffffff,pants:0x555555,hat:true},
+  {name:'武术教练',lat:40.0222,lon:116.3126,skin:0xD2B48C,shirt:0xffffff,pants:0x1a1a1a},
+  {name:'游泳健将',lat:40.0200,lon:116.3099,skin:0xF5DEB3,shirt:0x1E90FF,pants:0x000060},
+  {name:'马术教练',lat:40.0269,lon:116.3099,skin:0xD2B48C,shirt:0x8B4513,pants:0x333333},
 ];
-for(const d of npcSpawns){const p=geo(d.lat,d.lon);const model=createNPC(d.skin,d.shirt,d.pants,d.hat);model.position.set(p.x,0,p.z);npcTag(model,d.name);scene.add(model);
-  npcs.push({name:d.name,model,baseX:p.x,baseZ:p.z,wa:Math.random()*Math.PI*2,wr:4+Math.random()*8,ws:.3+Math.random()*.4,wc:Math.random()*Math.PI*2});}
+for(const d of npcSpawns){const p=G(d.lat,d.lon);const m=createNPC(d.skin,d.shirt,d.pants,d.hat);m.position.set(p[0],0,p[1]);npcTag(m,d.name);scene.add(m);
+  npcs.push({name:d.name,model:m,bx:p[0],bz:p[1],wa:Math.random()*Math.PI*2,wr:4+Math.random()*8,ws:.3+Math.random()*.4,wc:Math.random()*Math.PI*2});}
 
-lp(90,'构建玩家…');
+lp(88,'构建玩家…');
 
-/*========== PLAYER ==========*/
-const pG=new THREE.Group();
-const pM=createNPC(0xDEB887,0x4169E1,0x2a2a2a);pM.visible=false;pG.add(pM);
-const startP=geo(40.0189,116.3125);
-pG.position.set(startP.x,0,startP.z);scene.add(pG);
-camera.position.set(0,PH,0);pG.add(camera);
+/* ===== PLAYER ===== */
+const pG=new THREE.Group();const pM=createNPC(0xDEB887,0x4169E1,0x2a2a2a);pM.visible=false;pG.add(pM);
+const sp=G(40.0187,116.3125);pG.position.set(sp[0],0,sp[1]);scene.add(pG);
+cam.position.set(0,PH,0);pG.add(cam);
 
-/*========== MINIMAP ==========*/
-const mmC=document.getElementById('minimap-canvas'),mmX=mmC.getContext('2d');
+/* ===== MINIMAP ===== */
+const mmC=document.getElementById('mc'),mmX=mmC.getContext('2d');
 function renderMM(){
-  const w=mmC.width,h=mmC.height,cx=w/2,cy=h/2,sc=.2;
+  const w=mmC.width,h=mmC.height,cx=w/2,cy=h/2,sc=.18;
   const px=pG.position.x,pz=pG.position.z;
-  mmX.clearRect(0,0,w,h);
-  // BG
-  mmX.fillStyle='#1a2e1a';mmX.fillRect(0,0,w,h);
-  // Roads
-  mmX.fillStyle='#3a3a3a';mmX.fillRect(cx-1,0,3,h); // main NS road
-  // Buildings with text
-  mmX.font='bold 7px sans-serif';mmX.textAlign='center';
-  for(const b of buildings){
-    const bx2=cx+(b.x-px)*sc,bz=cy-(b.z-pz)*sc;
-    const bw=Math.max(3,(b.w||20)*sc),bd=Math.max(3,(b.d||20)*sc);
-    if(bx2+bw/2<-10||bx2-bw/2>w+10||bz+bd/2<-10||bz-bd/2>h+10)continue;
-    mmX.fillStyle=b.questId?'#e94560':'#667';
-    mmX.fillRect(bx2-bw/2,bz-bd/2,bw,bd);
-    // Labels for nearby buildings
-    if(bw>6&&b.name.length<12){
-      mmX.fillStyle='rgba(255,255,255,.7)';
-      mmX.fillText(b.name.slice(0,6),bx2,bz+bd/2+8);
+  mmX.clearRect(0,0,w,h);mmX.fillStyle='#1a2e1a';mmX.fillRect(0,0,w,h);
+  // Draw real building polygons on minimap!
+  for(const b of blds){
+    if(!b.pts)continue;
+    const pts2=b.pts.map(p=>[cx+(p[0]-px)*sc,cy-(p[1]-pz)*sc]);
+    // Check if any point visible
+    let vis=false;for(const p of pts2)if(p[0]>-20&&p[0]<w+20&&p[1]>-20&&p[1]<h+20){vis=true;break;}
+    if(!vis)continue;
+    mmX.fillStyle=b.questId?'#e94560':b.h>1?'#778':'#556';
+    mmX.beginPath();mmX.moveTo(pts2[0][0],pts2[0][1]);
+    for(let i=1;i<pts2.length;i++)mmX.lineTo(pts2[i][0],pts2[i][1]);
+    mmX.closePath();mmX.fill();
+    // Label
+    if(b.w*sc>8&&b.name.length<14){
+      mmX.fillStyle='rgba(255,255,255,.6)';mmX.font='bold 6px sans-serif';mmX.textAlign='center';
+      mmX.fillText(b.name.slice(0,8),cx+(b.x-px)*sc,cy-(b.z-pz)*sc+3);
     }
+  }
+  // Roads on minimap
+  mmX.strokeStyle='#444';mmX.lineWidth=1.5;
+  for(const r of osmRoads){
+    const rp=r.map(c=>{const p=G(c[0],c[1]);return[cx+(p[0]-px)*sc,cy-(p[1]-pz)*sc];});
+    mmX.beginPath();mmX.moveTo(rp[0][0],rp[0][1]);
+    for(let i=1;i<rp.length;i++)mmX.lineTo(rp[i][0],rp[i][1]);
+    mmX.stroke();
   }
   // NPCs
   for(const n of npcs){const nx=cx+(n.model.position.x-px)*sc,nz=cy-(n.model.position.z-pz)*sc;if(nx<0||nx>w||nz<0||nz>h)continue;mmX.fillStyle='#0f0';mmX.beginPath();mmX.arc(nx,nz,2.5,0,Math.PI*2);mmX.fill();}
   // Player
   mmX.fillStyle='#ff0';mmX.beginPath();mmX.arc(cx,cy,4,0,Math.PI*2);mmX.fill();
-  // Dir
-  const dx=cx+Math.sin(S.yaw)*10,dy=cy+Math.cos(S.yaw)*10;
-  mmX.strokeStyle='#ff0';mmX.lineWidth=2;mmX.beginPath();mmX.moveTo(cx,cy);mmX.lineTo(dx,dy);mmX.stroke();
-  // Compass
-  mmX.fillStyle='#fff';mmX.font='bold 10px sans-serif';
-  mmX.fillText('N',cx,8);mmX.fillText('S',cx,h-3);mmX.fillText('E',w-6,cy+4);mmX.fillText('W',7,cy+4);
-  // Border
-  mmX.strokeStyle='rgba(255,255,255,.2)';mmX.lineWidth=1;mmX.strokeRect(0,0,w,h);
+  const dx=cx+Math.sin(S.yaw)*10,dy=cy+Math.cos(S.yaw)*10;mmX.strokeStyle='#ff0';mmX.lineWidth=2;mmX.beginPath();mmX.moveTo(cx,cy);mmX.lineTo(dx,dy);mmX.stroke();
+  mmX.fillStyle='#fff';mmX.font='bold 9px sans-serif';mmX.textAlign='center';mmX.fillText('N',cx,9);mmX.fillText('S',cx,h-3);
+  mmX.strokeStyle='rgba(255,255,255,.15)';mmX.lineWidth=1;mmX.strokeRect(0,0,w,h);
 }
 
-/*========== QUESTS ==========*/
+/* ===== QUESTS ===== */
 const quests=[
-  {id:'gate',text:'🚪 找到南大门',done:false,cat:'地标'},
-  {id:'champion',text:'🏆 走过冠军之路',done:false,cat:'地标'},
-  {id:'library',text:'📚 参观图书馆',done:false,cat:'地标'},
-  {id:'track',text:'🏃 去田径场',done:false,cat:'场馆'},
-  {id:'gym',text:'🏀 参观体育馆',done:false,cat:'场馆'},
-  {id:'swim',text:'🏊 参观游泳馆',done:false,cat:'场馆'},
-  {id:'canteen',text:'🍜 去食堂',done:false,cat:'生活'},
-  {id:'talk3',text:'💬 和3位NPC对话',done:false,count:0,need:3,cat:'社交'},
-  {id:'talk6',text:'💬 和6位NPC对话',done:false,count:0,need:6,cat:'社交'},
-  {id:'explore5',text:'🗺️ 发现5个区域',done:false,count:0,need:5,cat:'探索'},
-  {id:'run1km',text:'🏃‍♂️ 奔跑1000米',done:false,dist:0,count:0,need:1000,cat:'运动'},
+  {id:'gate',text:'🚪 找到南大门',done:false,cat:'地标'},{id:'champion',text:'🏆 走冠军之路',done:false,cat:'地标'},
+  {id:'library',text:'📚 参观图书馆',done:false,cat:'地标'},{id:'track',text:'🏃 去田径场',done:false,cat:'场馆'},
+  {id:'gym',text:'🏀 参观体育馆',done:false,cat:'场馆'},{id:'swim',text:'🏊 参观游泳馆',done:false,cat:'场馆'},
+  {id:'canteen',text:'🍜 去食堂',done:false,cat:'生活'},{id:'talk3',text:'💬 和3位NPC对话',done:false,count:0,need:3,cat:'社交'},
+  {id:'explore5',text:'🗺️ 发现5个区域',done:false,count:0,need:5,cat:'探索'},{id:'run1km',text:'🏃‍♂️ 奔跑1000米',done:false,dist:0,count:0,need:1000,cat:'运动'},
 ];
-function updateQ(){const el=document.getElementById('quest-list');el.innerHTML='';let lc='';for(const q of quests){if(q.cat!==lc){if(lc)el.appendChild(Object.assign(document.createElement('div'),{className:'sep'}));lc=q.cat;}const d=document.createElement('div');d.className='qi'+(q.done?' done':'');d.textContent=(q.done?'✅ ':'⬜ ')+q.text+(q.need&&!q.done?` (${q.count}/${q.need})`:'');el.appendChild(d);}}
-function cQ(id){const q=quests.find(q2=>q2.id===id);if(q&&!q.done){q.done=true;updateQ();showN('✨ '+q.text);if(quests.every(q2=>q2.done))setTimeout(()=>showN('🎉 所有任务完成！'),1000);}}
-function showN(t){const e=document.createElement('div');e.className='notif';e.textContent=t;document.getElementById('notif-container').appendChild(e);setTimeout(()=>e.remove(),2500);}
-updateQ();
+function uQ(){const el=document.getElementById('ql');el.innerHTML='';let lc='';for(const q of quests){if(q.cat!==lc){if(lc){const s=document.createElement('div');s.className='sp';el.appendChild(s);}lc=q.cat;}const d=document.createElement('div');d.className='qi'+(q.done?' d':'');d.textContent=(q.done?'✅ ':'⬜ ')+q.text+(q.need&&!q.done?` (${q.count}/${q.need})`:'');el.appendChild(d);}}
+function cQ(id){const q=quests.find(q2=>q2.id===id);if(q&&!q.done){q.done=true;uQ();sN('✨ '+q.text);if(quests.every(q2=>q2.done))setTimeout(()=>sN('🎉 所有任务完成！'),1000);}}
+function sN(t){const e=document.createElement('div');e.className='nf';e.textContent=t;document.getElementById('nc').appendChild(e);setTimeout(()=>e.remove(),2500);}
+uQ();
 
-lp(95,'准备就绪！');
+lp(95,'就绪！');
 
-/*========== WALK ANIM ==========*/
-function aW(g,c,s){const p=g.userData.parts;if(!p)return;const sw=Math.sin(c)*.4*s;
-  if(p.legL){p.legL.position.z=sw*.3;p.legL.position.y=.43+Math.abs(Math.sin(c))*.05;}
-  if(p.legR){p.legR.position.z=-sw*.3;p.legR.position.y=.43+Math.abs(Math.cos(c))*.05;}
-  if(p.armL){p.armL.position.z=-sw*.25;p.armL.rotation.x=-sw*.3;}
-  if(p.armR){p.armR.position.z=sw*.25;p.armR.rotation.x=sw*.3;}
-  if(p.torso)p.torso.position.y=1.08+Math.abs(Math.sin(c*2))*.02;}
-function rP(g){const p=g.userData.parts;if(!p)return;
-  if(p.legL){p.legL.position.z=0;p.legL.position.y=.43;}if(p.legR){p.legR.position.z=0;p.legR.position.y=.43;}
-  if(p.armL){p.armL.position.z=0;p.armL.rotation.x=0;}if(p.armR){p.armR.position.z=0;p.armR.rotation.x=0;}
-  if(p.torso)p.torso.position.y=1.08;}
+/* ===== WALK ANIM ===== */
+function aW(g,c,s){const p=g.userData.parts;if(!p)return;const sw=Math.sin(c)*.4*s;if(p.legL){p.legL.position.z=sw*.3;p.legL.position.y=.43+Math.abs(Math.sin(c))*.05;}if(p.legR){p.legR.position.z=-sw*.3;p.legR.position.y=.43+Math.abs(Math.cos(c))*.05;}if(p.armL){p.armL.position.z=-sw*.25;p.armL.rotation.x=-sw*.3;}if(p.armR){p.armR.position.z=sw*.25;p.armR.rotation.x=sw*.3;}if(p.torso)p.torso.position.y=1.08+Math.abs(Math.sin(c*2))*.02;}
+function rP(g){const p=g.userData.parts;if(!p)return;if(p.legL){p.legL.position.z=0;p.legL.position.y=.43;}if(p.legR){p.legR.position.z=0;p.legR.position.y=.43;}if(p.armL){p.armL.position.z=0;p.armL.rotation.x=0;}if(p.armR){p.armR.position.z=0;p.armR.rotation.x=0;}if(p.torso)p.torso.position.y=1.08;}
 
-/*========== CONTROLS ==========*/
+/* ===== CONTROLS ===== */
 document.addEventListener('click',()=>{if(!S.locked)R.domElement.requestPointerLock();});
 document.addEventListener('pointerlockchange',()=>{S.locked=document.pointerLockElement===R.domElement;});
 document.addEventListener('mousemove',e=>{if(!S.locked)return;S.yaw-=e.movementX*MS;S.pitch-=e.movementY*MS;S.pitch=Math.max(-1.45,Math.min(1.45,S.pitch));});
-document.addEventListener('keydown',e=>{switch(e.code){
-  case'KeyW':S.fwd=true;break;case'KeyS':S.back=true;break;case'KeyA':S.left=true;break;case'KeyD':S.right=true;break;
-  case'ShiftLeft':case'ShiftRight':S.sprint=true;break;
-  case'Space':if(S.canJump){S.vel.y=JF;S.canJump=false;}e.preventDefault();break;
-  case'KeyF':S.tp=!S.tp;pM.visible=S.tp;break;
-  case'KeyE':if(S.nearNPC){if(S.dlgOpen){S.dlgIdx++;const dl=npcD[S.nearNPC.name];if(!dl||S.dlgIdx>=dl.length)closeDlg();else document.getElementById('dialog-text').textContent=dl[S.dlgIdx];}else openDlg(S.nearNPC);}break;
-  case'KeyQ':if(S.dlgOpen)closeDlg();break;
-}});
+document.addEventListener('keydown',e=>{switch(e.code){case'KeyW':S.fwd=true;break;case'KeyS':S.back=true;break;case'KeyA':S.left=true;break;case'KeyD':S.right=true;break;case'ShiftLeft':case'ShiftRight':S.sprint=true;break;case'Space':if(S.canJump){S.vel.y=JF;S.canJump=false;}e.preventDefault();break;case'KeyF':S.tp=!S.tp;pM.visible=S.tp;break;case'KeyE':if(S.nearNPC){if(S.dO){S.dI++;const dl=npcD[S.nearNPC.name];if(!dl||S.dI>=dl.length)cD();else document.getElementById('dt').textContent=dl[S.dI];}else oD(S.nearNPC);}break;case'KeyQ':if(S.dO)cD();break;}});
 document.addEventListener('keyup',e=>{switch(e.code){case'KeyW':S.fwd=false;break;case'KeyS':S.back=false;break;case'KeyA':S.left=false;break;case'KeyD':S.right=false;break;case'ShiftLeft':case'ShiftRight':S.sprint=false;break;}});
-function openDlg(npc){S.dlgOpen=true;S.dlgIdx=0;const dl=npcD[npc.name];if(!dl)return;document.getElementById('dialog').style.display='block';document.getElementById('dialog-name').textContent=npc.name;document.getElementById('dialog-text').textContent=dl[0];
-  if(!S.visited.has('npc_'+npc.name)){S.visited.add('npc_'+npc.name);for(const q of quests)if((q.id==='talk3'||q.id==='talk6')&&!q.done){q.count++;if(q.count>=q.need)cQ(q.id);}updateQ();}}
-function closeDlg(){S.dlgOpen=false;document.getElementById('dialog').style.display='none';}
+function oD(npc){S.dO=true;S.dI=0;const dl=npcD[npc.name];if(!dl)return;document.getElementById('dialog').style.display='block';document.getElementById('dn').textContent=npc.name;document.getElementById('dt').textContent=dl[0];if(!S.vis.has('n_'+npc.name)){S.vis.add('n_'+npc.name);const q=quests.find(q2=>q2.id==='talk3');if(q&&!q.done){q.count++;if(q.count>=q.need)cQ('talk3');}uQ();}}
+function cD(){S.dO=false;document.getElementById('dialog').style.display='none';}
 
-/*========== GAME LOOP ==========*/
-const clock=new THREE.Clock();
-let lastPos=new THREE.Vector3().copy(pG.position);
-
+/* ===== GAME LOOP ===== */
+const clock=new THREE.Clock();let lastPos=new THREE.Vector3().copy(pG.position);
 function update(){
-  const dt=Math.min(clock.getDelta(),.1);
-  if(!S.locked)return;
-
-  // Movement direction (always relative to yaw)
-  const yawQ=new THREE.Quaternion().setFromEuler(new THREE.Euler(0,S.yaw,0));
-  const fDir=new THREE.Vector3(0,0,-1).applyQuaternion(yawQ);
-  const rDir=new THREE.Vector3(1,0,0).applyQuaternion(yawQ);
-  const mv=new THREE.Vector3();
-  if(S.fwd)mv.add(fDir);if(S.back)mv.sub(fDir);if(S.right)mv.add(rDir);if(S.left)mv.sub(rDir);
-  S.isM=mv.length()>.01;
-  const wantSp=S.sprint&&S.isM&&S.stam>0;
-  if(wantSp)S.stam=Math.max(0,S.stam-SD*dt);else S.stam=Math.min(MXS,S.stam+SR*dt);
-  const actSp=wantSp&&S.stam>0;
-  const speed=actSp?RS:WS;
-  if(S.isM)mv.normalize().multiplyScalar(speed*dt);
-
-  // Walk anim
-  if(S.isM){const cs=actSp?14:8;S.wc+=dt*cs;
-    if(!S.tp)S.hb=Math.sin(S.wc)*(actSp?.06:.03);
-    aW(pM,S.wc,actSp?1.2:.8);
-    if(S.tp)pM.rotation.y=S.yaw+Math.PI;
-  }else{S.hb*=.85;rP(pM);}
-
-  S.vel.y-=GR*dt;
-  let nx=pG.position.x+mv.x,nz=pG.position.z+mv.z,ny=pG.position.y+S.vel.y*dt;
-  for(const c of colliders){if(nx>c.minX&&nx<c.maxX&&nz>c.minZ&&nz<c.maxZ&&ny<c.maxY){const ds=[{a:'x',v:c.minX-.5,d:Math.abs(nx-c.minX)},{a:'x',v:c.maxX+.5,d:Math.abs(nx-c.maxX)},{a:'z',v:c.minZ-.5,d:Math.abs(nz-c.minZ)},{a:'z',v:c.maxZ+.5,d:Math.abs(nz-c.maxZ)}];ds.sort((a,b)=>a.d-b.d);if(ds[0].a==='x')nx=ds[0].v;else nz=ds[0].v;}}
-  if(ny<0){ny=0;S.vel.y=0;S.canJump=true;}
-  nx=Math.max(-600,Math.min(600,nx));nz=Math.max(-600,Math.min(600,nz));
-  pG.position.set(nx,ny,nz);
-
-  // Run distance
-  const dM=pG.position.distanceTo(lastPos);
-  if(actSp&&dM>.01){const rq=quests.find(q=>q.id==='run1km');if(rq&&!rq.done){rq.dist+=dM;rq.count=Math.floor(rq.dist);if(rq.dist>=rq.need)cQ('run1km');updateQ();}}
-  lastPos.copy(pG.position);
-
-  /*=== CAMERA (FIXED THIRD PERSON) ===*/
-  if(S.tp){
-    // Camera orbits behind player, offset rotated by yaw+pitch
-    const camDist=6,camH=3;
-    const offQ=new THREE.Quaternion().setFromEuler(new THREE.Euler(S.pitch*.3,S.yaw,0,'YXZ'));
-    const off=new THREE.Vector3(0,camH,camDist).applyQuaternion(offQ);
-    camera.position.copy(off);
-    // Look at player's head in WORLD space
-    const target=new THREE.Vector3(pG.position.x,pG.position.y+PH,pG.position.z);
-    camera.lookAt(target);
-  }else{
-    // First person
-    camera.position.set(0,PH+S.hb,0);
-    camera.quaternion.setFromEuler(new THREE.Euler(S.pitch,S.yaw,0,'YXZ'));
-  }
-
-  // NPCs
-  let cNPC=null,cDist=5;
-  for(const n of npcs){
-    n.wa+=n.ws*dt;const wx=n.baseX+Math.cos(n.wa)*n.wr*.3,wz=n.baseZ+Math.sin(n.wa)*n.wr*.3;
-    const pvX=n.model.position.x,pvZ=n.model.position.z;
-    n.model.position.x=wx;n.model.position.z=wz;
-    if(Math.abs(wx-pvX)+Math.abs(wz-pvZ)>.001){n.wc+=dt*5;aW(n.model,n.wc,.5);n.model.rotation.y=Math.atan2(wx-pvX,wz-pvZ);}else rP(n.model);
-    const dx=pG.position.x-n.model.position.x,dz=pG.position.z-n.model.position.z;
-    const dist=Math.sqrt(dx*dx+dz*dz);
-    if(dist<12)n.model.rotation.y=Math.atan2(dx,dz);
-    if(dist<cDist){cDist=dist;cNPC=n;}
-  }
-  S.nearNPC=cNPC;document.getElementById('interact-hint').style.display=cNPC?'block':'none';
-
-  // Building
-  let nB=null,nD=35;
-  for(const b of buildings){const dx=pG.position.x-b.x,dz=pG.position.z-b.z;const dist=Math.sqrt(dx*dx+dz*dz);if(dist<nD){nD=dist;nB=b;}}
-  if(nB){document.getElementById('location-name').textContent=nB.name;const lbl=document.getElementById('building-label');lbl.textContent=nB.name;lbl.style.display=nD<25?'block':'none';
-    if(nB.questId&&nD<25)cQ(nB.questId);
-    if(nD<25&&!S.visited.has('area_'+nB.name)){S.visited.add('area_'+nB.name);const eq=quests.find(q=>q.id==='explore5');if(eq&&!eq.done){eq.count++;if(eq.count>=eq.need)cQ('explore5');updateQ();}}}
-  else{document.getElementById('location-name').textContent='北京体育大学';document.getElementById('building-label').style.display='none';}
-
-  // HUD
-  document.getElementById('coord-display').textContent=`坐标: ${Math.round(nx)}, ${Math.round(nz)}`;
-  document.getElementById('speed-display').textContent=actSp?'🏃 奔跑':S.isM?'🚶 步行':'⏸ 站立';
-  document.getElementById('stamina-fill').style.width=(S.stam/MXS*100)+'%';
-  document.getElementById('stamina-fill').style.background=S.stam<20?'#f44336':S.stam<50?'#FF9800':'#4CAF50';
-  S.gt+=dt*8;if(S.gt>24*60)S.gt-=24*60;
-  document.getElementById('game-time').textContent=`🕐 ${String(Math.floor(S.gt/60)).padStart(2,'0')}:${String(Math.floor(S.gt%60)).padStart(2,'0')}`;
-  const dP=S.gt/(24*60),sA=dP*Math.PI*2-Math.PI/2,sH=Math.sin(sA);
-  sun.position.set(200*Math.cos(sA),Math.max(15,350*sH),150);sun.intensity=Math.max(.08,sH*1.3);amb.intensity=Math.max(.12,.25+sH*.3);
-  if(sH>.05)scene.background.setHSL(.56,.55,.28+sH*.42);else scene.background.setHSL(.62,.25,Math.max(.02,.02+(sH+.1)*1.5));
-  scene.fog.color.copy(scene.background);
+  const dt=Math.min(clock.getDelta(),.1);if(!S.locked)return;
+  const yQ=new THREE.Quaternion().setFromEuler(new THREE.Euler(0,S.yaw,0));
+  const fD=new THREE.Vector3(0,0,-1).applyQuaternion(yQ),rD=new THREE.Vector3(1,0,0).applyQuaternion(yQ);
+  const mv=new THREE.Vector3();if(S.fwd)mv.add(fD);if(S.back)mv.sub(fD);if(S.right)mv.add(rD);if(S.left)mv.sub(rD);
+  S.iM=mv.length()>.01;const wSp=S.sprint&&S.iM&&S.st>0;if(wSp)S.st=Math.max(0,S.st-SD*dt);else S.st=Math.min(MXS,S.st+SR*dt);
+  const aSp=wSp&&S.st>0,spd=aSp?RS:WS;if(S.iM)mv.normalize().multiplyScalar(spd*dt);
+  if(S.iM){const cs=aSp?14:8;S.wc+=dt*cs;if(!S.tp)S.hb=Math.sin(S.wc)*(aSp?.06:.03);aW(pM,S.wc,aSp?1.2:.8);if(S.tp)pM.rotation.y=S.yaw+Math.PI;}else{S.hb*=.85;rP(pM);}
+  S.vel.y-=GR*dt;let nx=pG.position.x+mv.x,nz=pG.position.z+mv.z,ny=pG.position.y+S.vel.y*dt;
+  for(const c of cols){if(nx>c.minX&&nx<c.maxX&&nz>c.minZ&&nz<c.maxZ&&ny<c.maxY){const ds=[{a:'x',v:c.minX-.5,d:Math.abs(nx-c.minX)},{a:'x',v:c.maxX+.5,d:Math.abs(nx-c.maxX)},{a:'z',v:c.minZ-.5,d:Math.abs(nz-c.minZ)},{a:'z',v:c.maxZ+.5,d:Math.abs(nz-c.maxZ)}];ds.sort((a,b)=>a.d-b.d);if(ds[0].a==='x')nx=ds[0].v;else nz=ds[0].v;}}
+  if(ny<0){ny=0;S.vel.y=0;S.canJump=true;}nx=Math.max(-700,Math.min(700,nx));nz=Math.max(-700,Math.min(700,nz));pG.position.set(nx,ny,nz);
+  const dM=pG.position.distanceTo(lastPos);if(aSp&&dM>.01){const rq=quests.find(q=>q.id==='run1km');if(rq&&!rq.done){rq.dist+=dM;rq.count=Math.floor(rq.dist);if(rq.dist>=rq.need)cQ('run1km');uQ();}}lastPos.copy(pG.position);
+  if(S.tp){const cD2=6,cH=3;const oQ=new THREE.Quaternion().setFromEuler(new THREE.Euler(S.pitch*.3,S.yaw,0,'YXZ'));const off=new THREE.Vector3(0,cH,cD2).applyQuaternion(oQ);cam.position.copy(off);const tgt=new THREE.Vector3(pG.position.x,pG.position.y+PH,pG.position.z);cam.lookAt(tgt);}
+  else{cam.position.set(0,PH+S.hb,0);cam.quaternion.setFromEuler(new THREE.Euler(S.pitch,S.yaw,0,'YXZ'));}
+  let cNPC=null,cDist=5;for(const n of npcs){n.wa+=n.ws*dt;const wx=n.bx+Math.cos(n.wa)*n.wr*.3,wz=n.bz+Math.sin(n.wa)*n.wr*.3;const pvX=n.model.position.x,pvZ=n.model.position.z;n.model.position.x=wx;n.model.position.z=wz;if(Math.abs(wx-pvX)+Math.abs(wz-pvZ)>.001){n.wc+=dt*5;aW(n.model,n.wc,.5);n.model.rotation.y=Math.atan2(wx-pvX,wz-pvZ);}else rP(n.model);const dx=pG.position.x-n.model.position.x,dz=pG.position.z-n.model.position.z;const dist=Math.sqrt(dx*dx+dz*dz);if(dist<12)n.model.rotation.y=Math.atan2(dx,dz);if(dist<cDist){cDist=dist;cNPC=n;}}
+  S.nearNPC=cNPC;document.getElementById('ihint').style.display=cNPC?'block':'none';
+  let nB=null,nD2=35;for(const b of blds){const dx=pG.position.x-b.x,dz=pG.position.z-b.z;const dist=Math.sqrt(dx*dx+dz*dz);if(dist<nD2){nD2=dist;nB=b;}}
+  if(nB){document.getElementById('ln').textContent=nB.name;const lbl=document.getElementById('blbl');lbl.textContent=nB.name;lbl.style.display=nD2<25?'block':'none';if(nB.questId&&nD2<25)cQ(nB.questId);if(nD2<25&&!S.vis.has('a_'+nB.name)){S.vis.add('a_'+nB.name);const eq=quests.find(q=>q.id==='explore5');if(eq&&!eq.done){eq.count++;if(eq.count>=eq.need)cQ('explore5');uQ();}}}
+  else{document.getElementById('ln').textContent='北京体育大学';document.getElementById('blbl').style.display='none';}
+  document.getElementById('cd').textContent=`${Math.round(nx)}, ${Math.round(nz)}`;
+  document.getElementById('sd').textContent=aSp?'🏃 奔跑':S.iM?'🚶 步行':'⏸ 站立';
+  document.getElementById('sf').style.width=(S.st/MXS*100)+'%';document.getElementById('sf').style.background=S.st<20?'#f44336':S.st<50?'#FF9800':'#4CAF50';
+  S.gt+=dt*8;if(S.gt>24*60)S.gt-=24*60;document.getElementById('gt').textContent=`🕐 ${String(Math.floor(S.gt/60)).padStart(2,'0')}:${String(Math.floor(S.gt%60)).padStart(2,'0')}`;
+  const dP=S.gt/(24*60),sA=dP*Math.PI*2-Math.PI/2,sH=Math.sin(sA);sun.position.set(200*Math.cos(sA),Math.max(15,350*sH),150);sun.intensity=Math.max(.08,sH*1.3);amb.intensity=Math.max(.12,.25+sH*.3);
+  if(sH>.05)scene.background.setHSL(.56,.55,.28+sH*.42);else scene.background.setHSL(.62,.25,Math.max(.02,.02+(sH+.1)*1.5));scene.fog.color.copy(scene.background);
   renderMM();
 }
-function animate(){requestAnimationFrame(animate);update();R.render(scene,camera);}
+function animate(){requestAnimationFrame(animate);update();R.render(scene,cam);}
 setTimeout(()=>{document.getElementById('loading').style.opacity='0';setTimeout(()=>document.getElementById('loading').style.display='none',800);animate();},800);
-window.addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();R.setSize(innerWidth,innerHeight);});
+window.addEventListener('resize',()=>{cam.aspect=innerWidth/innerHeight;cam.updateProjectionMatrix();R.setSize(innerWidth,innerHeight);});
 </script>
 </body>
 </html>
