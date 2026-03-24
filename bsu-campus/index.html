@@ -1,0 +1,728 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>北京体育大学 - 3D校园探索</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { overflow: hidden; background: #000; font-family: 'Microsoft YaHei', 'PingFang SC', sans-serif; }
+canvas { display: block; }
+
+#loading {
+  position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  z-index: 1000; transition: opacity 0.8s;
+}
+#loading h1 { color: #e94560; font-size: 52px; margin-bottom: 8px; text-shadow: 0 0 30px rgba(233,69,96,0.5); letter-spacing: 8px; }
+#loading h2 { color: #fff; font-size: 20px; margin-bottom: 6px; font-weight: normal; opacity: 0.8; }
+#loading h3 { color: rgba(255,255,255,0.5); font-size: 14px; margin-bottom: 40px; font-weight: normal; }
+#loading .bar-bg { width: 400px; height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px; }
+#loading .bar { height: 100%; background: linear-gradient(90deg, #e94560, #ff6b6b); border-radius: 2px; transition: width 0.3s; width: 0%; }
+#loading .tip { color: rgba(255,255,255,0.5); margin-top: 20px; font-size: 13px; }
+
+#hud { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 10; }
+
+#crosshair { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 20px; height: 20px; }
+#crosshair::before, #crosshair::after { content: ''; position: absolute; background: rgba(255,255,255,0.6); }
+#crosshair::before { width: 2px; height: 20px; left: 9px; top: 0; }
+#crosshair::after { width: 20px; height: 2px; left: 0; top: 9px; }
+
+#minimap {
+  position: absolute; bottom: 20px; right: 20px;
+  width: 200px; height: 200px;
+  background: rgba(0,0,0,0.75); border: 2px solid rgba(255,255,255,0.25);
+  border-radius: 50%; overflow: hidden;
+}
+#minimap canvas { width: 100%; height: 100%; }
+
+#info-panel {
+  position: absolute; top: 20px; left: 20px;
+  background: rgba(0,0,0,0.65); border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 12px; padding: 14px 18px; color: #fff; min-width: 180px;
+  backdrop-filter: blur(10px);
+}
+#info-panel .title { font-size: 16px; color: #e94560; margin-bottom: 6px; font-weight: bold; }
+#info-panel .sub { font-size: 11px; color: rgba(255,255,255,0.5); margin-top: 3px; }
+
+#dialog {
+  position: absolute; bottom: 100px; left: 50%; transform: translateX(-50%);
+  background: rgba(0,0,0,0.88); border: 2px solid #e94560;
+  border-radius: 16px; padding: 20px 28px; color: #fff;
+  max-width: 550px; min-width: 380px; display: none;
+  backdrop-filter: blur(12px); pointer-events: auto;
+}
+#dialog .npc-name { color: #e94560; font-size: 15px; font-weight: bold; margin-bottom: 6px; }
+#dialog .npc-text { font-size: 14px; line-height: 1.7; }
+#dialog .hint { font-size: 11px; color: rgba(255,255,255,0.35); margin-top: 10px; text-align: right; }
+
+#controls-hint {
+  position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
+  background: rgba(0,0,0,0.55); border-radius: 10px; padding: 8px 18px;
+  color: rgba(255,255,255,0.6); font-size: 11px; text-align: center;
+  backdrop-filter: blur(5px);
+}
+
+#interact-hint {
+  position: absolute; top: 55%; left: 50%; transform: translate(-50%, 0);
+  color: #fff; font-size: 13px; background: rgba(233,69,96,0.85);
+  padding: 4px 14px; border-radius: 20px; display: none;
+}
+
+#building-label {
+  position: absolute; top: 62%; left: 50%; transform: translate(-50%, 0);
+  color: #fff; font-size: 16px; font-weight: bold;
+  text-shadow: 0 2px 8px rgba(0,0,0,0.8), 0 0 20px rgba(0,0,0,0.5);
+  display: none; text-align: center; pointer-events: none;
+}
+
+#quest-panel {
+  position: absolute; top: 20px; right: 20px;
+  background: rgba(0,0,0,0.65); border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 12px; padding: 14px; color: #fff; width: 230px;
+  backdrop-filter: blur(10px); max-height: 55vh; overflow-y: auto;
+}
+#quest-panel .qt { font-size: 13px; color: #ffd700; margin-bottom: 8px; font-weight: bold; }
+#quest-panel .qi { font-size: 11px; color: rgba(255,255,255,0.65); margin: 3px 0; padding: 2px 0; }
+#quest-panel .qi.done { color: rgba(255,255,255,0.25); text-decoration: line-through; }
+#quest-panel .sep { border-top: 1px solid rgba(255,255,255,0.1); margin: 8px 0; }
+
+#notif-container {
+  position: fixed; top: 80px; left: 50%; transform: translateX(-50%);
+  z-index: 100; pointer-events: none; display: flex; flex-direction: column; align-items: center; gap: 8px;
+}
+.notif {
+  background: rgba(233,69,96,0.92); color: white; padding: 8px 22px;
+  border-radius: 24px; font-size: 14px; white-space: nowrap;
+  animation: notifAnim 2.5s forwards;
+}
+@keyframes notifAnim {
+  0% { opacity: 0; transform: translateY(15px); }
+  15% { opacity: 1; transform: translateY(0); }
+  75% { opacity: 1; transform: translateY(0); }
+  100% { opacity: 0; transform: translateY(-15px); }
+}
+#stamina-bar {
+  position: absolute; bottom: 50px; left: 50%; transform: translateX(-50%);
+  width: 150px; height: 4px; background: rgba(255,255,255,0.15); border-radius: 2px; overflow: hidden;
+}
+#stamina-fill { height: 100%; background: #4CAF50; transition: width 0.1s; width: 100%; border-radius: 2px; }
+</style>
+</head>
+<body>
+<div id="loading">
+  <h1>北京体育大学</h1>
+  <h2>Beijing Sport University</h2>
+  <h3>3D 校园探索游戏</h3>
+  <div class="bar-bg"><div class="bar" id="load-bar"></div></div>
+  <div class="tip" id="load-tip">正在初始化…</div>
+</div>
+<div id="hud">
+  <div id="crosshair"></div>
+  <div id="minimap"><canvas id="minimap-canvas" width="200" height="200"></canvas></div>
+  <div id="info-panel">
+    <div class="title" id="location-name">北京体育大学</div>
+    <div class="sub" id="coord-display"></div>
+    <div class="sub" id="speed-display">🚶 步行</div>
+    <div class="sub" id="game-time"></div>
+  </div>
+  <div id="dialog">
+    <div class="npc-name" id="dialog-name"></div>
+    <div class="npc-text" id="dialog-text"></div>
+    <div class="hint">按 E 继续 · 按 Q 关闭</div>
+  </div>
+  <div id="controls-hint">WASD 移动 · 鼠标视角 · Shift 奔跑 · Space 跳跃 · E 互动 · F 切换视角 · 点击屏幕开始</div>
+  <div id="interact-hint">按 E 互动</div>
+  <div id="building-label"></div>
+  <div id="quest-panel">
+    <div class="qt">📋 校园探索任务</div>
+    <div id="quest-list"></div>
+  </div>
+  <div id="notif-container"></div>
+  <div id="stamina-bar"><div id="stamina-fill"></div></div>
+</div>
+
+<script type="importmap">
+{ "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js", "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/" } }
+</script>
+<script type="module">
+import * as THREE from 'three';
+
+/* ==================== CONFIG ==================== */
+const PLAYER_H = 1.72, WALK_SPD = 4.5, RUN_SPD = 9, JUMP_F = 7, GRAV = 18, MSENS = 0.002;
+const MAX_STAM = 100, STAM_DRAIN = 15, STAM_REGEN = 20;
+
+/* ==================== STATE ==================== */
+const S = {
+  locked:false, vel:new THREE.Vector3(),
+  fwd:false,back:false,left:false,right:false,sprint:false,canJump:true,
+  yaw:0,pitch:0,thirdPerson:false,
+  nearNPC:null,dialogOpen:false,dialogIdx:0,
+  visited:new Set(), gameTime:8*60, stamina:MAX_STAM,
+  walkCycle:0, headBob:0, isMoving:false,
+};
+
+/* ==================== SCENE ==================== */
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x87CEEB);
+scene.fog = new THREE.FogExp2(0x87CEEB, 0.0012);
+const camera = new THREE.PerspectiveCamera(72, innerWidth/innerHeight, 0.1, 2000);
+const renderer = new THREE.WebGLRenderer({antialias:true});
+renderer.setSize(innerWidth,innerHeight);
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.1;
+document.body.appendChild(renderer.domElement);
+
+/* ==================== LIGHTS ==================== */
+const ambient = new THREE.AmbientLight(0x506080,0.55); scene.add(ambient);
+const sun = new THREE.DirectionalLight(0xfff5e0,1.3);
+sun.position.set(200,350,150); sun.castShadow=true;
+sun.shadow.mapSize.set(4096,4096);
+sun.shadow.camera.near=1; sun.shadow.camera.far=1200;
+const sc=500;
+sun.shadow.camera.left=-sc; sun.shadow.camera.right=sc;
+sun.shadow.camera.top=sc; sun.shadow.camera.bottom=-sc;
+scene.add(sun);
+scene.add(new THREE.HemisphereLight(0x87CEEB,0x3a5f3a,0.35));
+
+/* ==================== MATERIALS ==================== */
+const M = {
+  ground: new THREE.MeshLambertMaterial({color:0x4a7a4a}),
+  road: new THREE.MeshLambertMaterial({color:0x505050}),
+  path: new THREE.MeshLambertMaterial({color:0xc8c0a8}),
+  concrete: new THREE.MeshLambertMaterial({color:0xa8a8a0}),
+  track: new THREE.MeshLambertMaterial({color:0xCC3333}),
+  grass: new THREE.MeshLambertMaterial({color:0x2d8c2d}),
+  glass: new THREE.MeshPhongMaterial({color:0x88ccff,transparent:true,opacity:0.35,shininess:120}),
+  metal: new THREE.MeshPhongMaterial({color:0xc0c0c0,shininess:60}),
+  gold: new THREE.MeshPhongMaterial({color:0xDAA520,shininess:50}),
+  white: new THREE.MeshLambertMaterial({color:0xf5f5f0}),
+  red: new THREE.MeshPhongMaterial({color:0xB22222,flatShading:true}),
+  darkRed: new THREE.MeshPhongMaterial({color:0x8B0000}),
+  bldgA: new THREE.MeshPhongMaterial({color:0xd4c5a0,flatShading:true}),
+  bldgB: new THREE.MeshPhongMaterial({color:0xc0b090,flatShading:true}),
+  bldgC: new THREE.MeshPhongMaterial({color:0xe8e0d0,flatShading:true}),
+  bldgD: new THREE.MeshPhongMaterial({color:0xb0a888,flatShading:true}),
+  bldgE: new THREE.MeshPhongMaterial({color:0x8090a0,flatShading:true}),
+  bldgF: new THREE.MeshPhongMaterial({color:0x4682B4,flatShading:true}),
+  roofR: new THREE.MeshPhongMaterial({color:0x7a2020}),
+  roofG: new THREE.MeshPhongMaterial({color:0x556655}),
+  gate: new THREE.MeshPhongMaterial({color:0xC0A040,flatShading:true}),
+  trunk: new THREE.MeshLambertMaterial({color:0x6B4226}),
+  leaf: [new THREE.MeshLambertMaterial({color:0x228B22}),new THREE.MeshLambertMaterial({color:0x2E8B57}),new THREE.MeshLambertMaterial({color:0x1a7a1a})],
+};
+
+/* ==================== HELPERS ==================== */
+const buildings = [], colliders = [];
+function setLoad(p,t){document.getElementById('load-bar').style.width=p+'%';document.getElementById('load-tip').textContent=t;}
+function plane(w,d,mat,y=0.05){const m=new THREE.Mesh(new THREE.PlaneGeometry(w,d),mat);m.rotation.x=-Math.PI/2;m.position.y=y;m.receiveShadow=true;return m;}
+function box(w,h,d,mat){const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);m.castShadow=true;m.receiveShadow=true;return m;}
+
+/* ==================== BUILDING FACTORY ==================== */
+function addBuilding(name,x,z,w,d,h,mat,opts={}){
+  const g=new THREE.Group();
+  const body=box(w,h,d,mat); body.position.y=h/2; g.add(body);
+  if(h>4&&!opts.noWin){
+    const floors=Math.floor(h/3.2), wPF=Math.max(2,Math.floor(w/3.5));
+    const wG=new THREE.PlaneGeometry(1.4,1.8);
+    for(let f=0;f<floors;f++){
+      const wy=2.2+f*3.2; if(wy>h-1.5) break;
+      for(let wi=0;wi<wPF;wi++){
+        const wx=-w/2+(wi+0.5)*(w/wPF);
+        for(const s of[1,-1]){const wm=new THREE.Mesh(wG,M.glass);wm.position.set(wx,wy,s*(d/2+0.02));if(s<0)wm.rotation.y=Math.PI;g.add(wm);}
+      }
+      const sPF=Math.max(2,Math.floor(d/3.5));
+      for(let si=0;si<sPF;si++){
+        const sz=-d/2+(si+0.5)*(d/sPF);
+        for(const s of[1,-1]){const wm=new THREE.Mesh(wG,M.glass);wm.position.set(s*(w/2+0.02),wy,sz);wm.rotation.y=s*Math.PI/2;g.add(wm);}
+      }
+    }
+  }
+  if(opts.entrance){
+    const ew=Math.min(8,w*0.3);
+    const porch=box(ew,3.5,2.5,M.concrete);porch.position.set(0,1.75,d/2+1.25);g.add(porch);
+    const door=box(2.5,3,0.15,new THREE.MeshLambertMaterial({color:0x4a3520}));door.position.set(0,1.5,d/2+2.55);g.add(door);
+  }
+  if(opts.roofMat){
+    if(opts.flatRoof){const rf=box(w+0.6,0.4,d+0.6,opts.roofMat);rf.position.y=h+0.2;g.add(rf);}
+    else{const rg=new THREE.ConeGeometry(Math.max(w,d)*0.55,h*0.18,4);const rm=new THREE.Mesh(rg,opts.roofMat);rm.position.y=h+h*0.09;rm.rotation.y=Math.PI/4;rm.castShadow=true;g.add(rm);}
+  }
+  const base=box(w+0.4,0.3,d+0.4,M.concrete);base.position.y=0.15;g.add(base);
+  if(opts.rot)g.rotation.y=opts.rot;
+  g.position.set(x,0,z); scene.add(g);
+  const pad=1;
+  const bd={name,x,z,w,d,h,group:g,bounds:{minX:x-w/2-pad,maxX:x+w/2+pad,minZ:z-d/2-pad,maxZ:z+d/2+pad}};
+  if(opts.questId)bd.questId=opts.questId;
+  buildings.push(bd);
+  if(h>0.5)colliders.push({...bd.bounds,maxY:h});
+  return g;
+}
+
+function addArena(name,x,z,w,d,h,mat,opts={}){
+  const g=new THREE.Group();
+  const body=box(w,h,d,mat);body.position.y=h/2;g.add(body);
+  const rg=new THREE.CylinderGeometry(w/2*0.95,w/2*0.95,d*1.02,24,1,false,0,Math.PI);
+  const rm=new THREE.Mesh(rg,M.metal);rm.rotation.x=Math.PI/2;rm.rotation.z=Math.PI/2;rm.position.y=h;g.add(rm);
+  const porch=box(8,4,3,M.concrete);porch.position.set(0,2,d/2+1.5);g.add(porch);
+  const base=box(w+0.4,0.3,d+0.4,M.concrete);base.position.y=0.15;g.add(base);
+  if(opts.rot)g.rotation.y=opts.rot;
+  g.position.set(x,0,z);scene.add(g);
+  const pad=2;
+  const bd={name,x,z,w,d,h:h+w/2*0.95,group:g,bounds:{minX:x-w/2-pad,maxX:x+w/2+pad,minZ:z-d/2-pad,maxZ:z+d/2+pad+3}};
+  if(opts.questId)bd.questId=opts.questId;
+  buildings.push(bd);colliders.push({...bd.bounds,maxY:h});
+  return g;
+}
+
+setLoad(5,'生成地形…');
+
+/* ==================== GROUND ==================== */
+scene.add(plane(1400,1400,M.ground,0));
+for(let i=0;i<40;i++){const a=(i/40)*Math.PI*2,dist=550+Math.random()*150;const bw=15+Math.random()*35,bh=12+Math.random()*50,bd=15+Math.random()*35;const m=box(bw,bh,bd,new THREE.MeshLambertMaterial({color:new THREE.Color().setHSL(0,0,0.45+Math.random()*0.25)}));m.position.set(Math.cos(a)*dist,bh/2,Math.sin(a)*dist);scene.add(m);}
+
+setLoad(10,'铺设道路…');
+
+/* ==================== ROADS ==================== */
+/*
+ * 北体校园(本部)位于海淀区信息路48号
+ * 坐标: 40.0299°N, 116.3193°E
+ * 总面积75.5万㎡(≈750m NS × 500m EW)
+ * x=东(+), z=北(+), 南门z≈-335
+ */
+function road(x,z,w,d){const m=plane(w,d,M.road);m.position.set(x,0.06,z);scene.add(m);}
+function path2(x,z,w,d){const m=plane(w,d,M.path);m.position.set(x,0.07,z);scene.add(m);}
+
+// 南北中轴主路
+road(0,0,10,700);
+// 东西主干道
+road(0,-180,450,8); road(0,-50,450,8); road(0,80,400,7); road(0,180,350,7); road(0,260,300,6);
+// 南北辅路
+road(-150,0,7,550); road(140,30,7,500); road(70,80,7,300);
+// 外围
+road(-210,0,6,650); road(210,0,6,650); road(0,-340,440,6); road(0,320,440,6);
+// 小路
+path2(-80,-120,4,200);path2(80,-120,4,200);path2(-80,120,4,200);path2(80,120,4,200);
+path2(0,-260,200,3);path2(-50,220,3,100);path2(50,220,3,100);
+
+setLoad(18,'建造校门…');
+
+/* ==================== 南大门 ==================== */
+(function(){
+  const g=new THREE.Group();
+  for(const sx of[-12,12]){
+    const p=box(3.5,14,3,M.gate);p.position.set(sx,7,0);g.add(p);
+    const cap=box(4.5,1,4,M.gate);cap.position.set(sx,14.5,0);g.add(cap);
+  }
+  const beam=box(28,2.5,3,M.gate);beam.position.set(0,12,0);g.add(beam);
+  const sign=box(22,3.5,0.6,M.darkRed);sign.position.set(0,15,0);g.add(sign);
+  // 校名
+  const tc=document.createElement('canvas');tc.width=512;tc.height=72;
+  const tx=tc.getContext('2d');tx.fillStyle='#fff';tx.font='bold 56px "Microsoft YaHei","SimHei",sans-serif';tx.textAlign='center';tx.fillText('北京体育大学',256,55);
+  const ttex=new THREE.CanvasTexture(tc);
+  const tm=new THREE.Mesh(new THREE.PlaneGeometry(18,2.5),new THREE.MeshBasicMaterial({map:ttex,transparent:true}));
+  tm.position.set(0,15,0.35);g.add(tm);
+  for(const sx of[-20,20]){const sp=box(2,9,2.5,M.gate);sp.position.set(sx,4.5,0);g.add(sp);}
+  for(const sx of[-26,26]){const gd=box(7,3.5,5,M.bldgC);gd.position.set(sx,1.75,0);g.add(gd);const gt=box(7.6,0.3,5.6,M.metal);gt.position.set(sx,3.6,0);g.add(gt);}
+  g.position.set(0,0,-335);scene.add(g);
+  buildings.push({name:'南大门（正门）',x:0,z:-335,w:60,d:8,h:16,group:g,bounds:{minX:-32,maxX:32,minZ:-340,maxZ:-330},questId:'gate'});
+})();
+// 北门
+(function(){const g=new THREE.Group();for(const sx of[-8,8]){const p=box(2.5,8,2.5,M.bldgB);p.position.set(sx,4,0);g.add(p);}const b=box(20,1.5,2,M.bldgB);b.position.set(0,8.5,0);g.add(b);g.position.set(0,0,325);scene.add(g);buildings.push({name:'北门',x:0,z:325,w:22,d:5,h:9,group:g,bounds:{minX:-12,maxX:12,minZ:322,maxZ:328}});})();
+// 东门
+(function(){const g=new THREE.Group();for(const sz of[-5,5]){const p=box(2,6,2,M.concrete);p.position.set(0,3,sz);g.add(p);}g.position.set(215,0,-50);scene.add(g);buildings.push({name:'东门',x:215,z:-50,w:4,d:14,h:7,group:g,bounds:{minX:212,maxX:218,minZ:-57,maxZ:-43}});})();
+
+setLoad(22,'铺设冠军之路…');
+
+/* ==================== 冠军之路 ==================== */
+(function(){
+  const g=new THREE.Group();
+  g.add(plane(8,180,M.gold,0.08));
+  for(let i=0;i<40;i++){
+    const px=(Math.random()-0.5)*5,pz=-85+i*4.2;
+    const brick=box(1,0.06,0.8,new THREE.MeshPhongMaterial({color:0xC8A838,shininess:40}));brick.position.set(px,0.11,pz);g.add(brick);
+    if(i%3===0){const pl=box(0.8,0.35,0.6,M.gold);pl.position.set(px+(Math.random()-0.5)*2,0.18,pz);g.add(pl);}
+  }
+  for(let i=0;i<18;i++){for(const sx of[-5.5,5.5]){
+    const pole=new THREE.Mesh(new THREE.CylinderGeometry(0.06,0.08,4.5),M.metal);pole.position.set(sx,2.25,-85+i*10);g.add(pole);
+    const lamp=new THREE.Mesh(new THREE.SphereGeometry(0.25,6,4),new THREE.MeshPhongMaterial({color:0xffffdd,emissive:0xffff88,emissiveIntensity:0.15}));lamp.position.set(sx,4.7,-85+i*10);g.add(lamp);
+  }}
+  const stone=box(4,2.5,1.2,M.darkRed);stone.position.set(0,1.25,95);g.add(stone);
+  const sc2=document.createElement('canvas');sc2.width=256;sc2.height=128;const vc=sc2.getContext('2d');vc.fillStyle='#DAA520';vc.font='bold 48px "SimHei"';vc.textAlign='center';vc.fillText('冠军之路',128,85);
+  const stex=new THREE.CanvasTexture(sc2);
+  const sm=new THREE.Mesh(new THREE.PlaneGeometry(3.5,1.8),new THREE.MeshBasicMaterial({map:stex,transparent:true}));sm.position.set(0,1.25,95.65);g.add(sm);
+  g.position.set(0,0,-245);scene.add(g);
+  buildings.push({name:'冠军之路',x:0,z:-245,w:8,d:180,h:0.2,group:g,bounds:{minX:-6,maxX:6,minZ:-335,maxZ:-148},questId:'champion'});
+})();
+
+setLoad(28,'建造教学区…');
+
+/* ==================== 教学区 ==================== */
+addBuilding('教学楼1号',-55,-210,48,16,20,M.bldgA,{entrance:true,roofMat:M.roofR});
+addBuilding('教学楼2号',55,-210,48,16,20,M.bldgA,{entrance:true,roofMat:M.roofR});
+addBuilding('教学楼3号',-55,-250,38,14,17,M.bldgA,{entrance:true,roofMat:M.roofR});
+addBuilding('教学楼4号',55,-250,38,14,17,M.bldgA,{entrance:true,roofMat:M.roofR});
+addBuilding('实验教学楼',0,-270,35,16,14,M.bldgB,{entrance:true,roofMat:M.roofG,flatRoof:true});
+addBuilding('行政办公楼',0,-295,55,18,16,M.bldgC,{entrance:true,roofMat:M.roofG,flatRoof:true});
+
+// 校训石
+(function(){const s=box(5,2.8,1.5,M.darkRed);s.position.set(0,1.4,-310);scene.add(s);buildings.push({name:'校训石 · 追求卓越',x:0,z:-310,w:5,d:1.5,h:2.8,group:s,bounds:{minX:-4,maxX:4,minZ:-312,maxZ:-308}});})();
+
+setLoad(35,'建造图书馆…');
+
+/* ==================== 图书馆 ==================== */
+(function(){
+  const g=new THREE.Group();
+  const main=box(50,24,28,M.bldgC);main.position.y=12;g.add(main);
+  g.add(Object.assign(new THREE.Mesh(new THREE.PlaneGeometry(48,22),M.glass),{position:new THREE.Vector3(0,12,14.1)}));
+  g.add(Object.assign(new THREE.Mesh(new THREE.PlaneGeometry(48,22),M.glass),{position:new THREE.Vector3(0,12,-14.1),rotation:new THREE.Euler(0,Math.PI,0)}));
+  for(let i=0;i<6;i++){const step=box(18-i*0.5,0.25,1.2,M.concrete);step.position.set(0,0.125+i*0.25,15+i*1.2);g.add(step);}
+  const top=box(52,0.8,30,M.metal);top.position.y=24.4;g.add(top);
+  const wing=box(15,18,18,M.bldgC);wing.position.set(25,9,-6);g.add(wing);
+  g.position.set(-80,0,-80);scene.add(g);
+  buildings.push({name:'图书馆',x:-80,z:-80,w:60,d:32,h:24,group:g,bounds:{minX:-115,maxX:-45,minZ:-100,maxZ:-60},questId:'library'});
+  colliders.push({minX:-115,maxX:-45,minZ:-100,maxZ:-60,maxY:24});
+})();
+
+setLoad(42,'建造体育场馆…');
+
+/* ==================== 田径场 ==================== */
+(function(){
+  const g=new THREE.Group();
+  const oRx=68,oRy=42,iRx=58,iRy=32;
+  const shape=new THREE.Shape();
+  for(let a=0;a<=Math.PI*2+0.01;a+=0.04){const fn=a===0?'moveTo':'lineTo';shape[fn](Math.cos(a)*oRx,Math.sin(a)*oRy);}
+  const hole=new THREE.Path();
+  for(let a=0;a<=Math.PI*2+0.01;a+=0.04){const fn=a===0?'moveTo':'lineTo';hole[fn](Math.cos(a)*iRx,Math.sin(a)*iRy);}
+  shape.holes.push(hole);
+  const tm=new THREE.Mesh(new THREE.ShapeGeometry(shape),M.track);tm.rotation.x=-Math.PI/2;tm.position.y=0.1;g.add(tm);
+  const is=new THREE.Shape();
+  for(let a=0;a<=Math.PI*2+0.01;a+=0.04){const fn=a===0?'moveTo':'lineTo';is[fn](Math.cos(a)*iRx,Math.sin(a)*iRy);}
+  const gm=new THREE.Mesh(new THREE.ShapeGeometry(is),M.grass);gm.rotation.x=-Math.PI/2;gm.position.y=0.08;g.add(gm);
+  for(let l=0;l<8;l++){const rx=59+l*1.22,ry=33+l*1.22;const pts=[];for(let a=0;a<=Math.PI*2+0.01;a+=0.04)pts.push(new THREE.Vector3(Math.cos(a)*rx,0.12,Math.sin(a)*ry));g.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts),new THREE.LineBasicMaterial({color:0xffffff})));}
+  for(const side of[-1,1]){const st=box(110,10,14,M.concrete);st.position.set(0,5,side*52);g.add(st);for(let r=0;r<5;r++){const seat=box(108,0.2,1.8,new THREE.MeshLambertMaterial({color:r%2===0?0xcc0000:0xffffff}));seat.position.set(0,1+r*1.8,side*(46+r*1.2));g.add(seat);}}
+  for(const end of[-1,1]){const pg=new THREE.CylinderGeometry(0.05,0.05,2.44);const pm=new THREE.MeshPhongMaterial({color:0xffffff});const go=new THREE.Group();go.add(Object.assign(new THREE.Mesh(pg,pm),{position:new THREE.Vector3(-3.66,1.22,0)}));go.add(Object.assign(new THREE.Mesh(pg,pm),{position:new THREE.Vector3(3.66,1.22,0)}));const cb=new THREE.Mesh(new THREE.CylinderGeometry(0.05,0.05,7.32),pm);cb.rotation.z=Math.PI/2;cb.position.y=2.44;go.add(cb);go.position.set(end*52,0,0);go.rotation.y=Math.PI/2;g.add(go);}
+  g.position.set(80,0,80);scene.add(g);
+  buildings.push({name:'田径场（主体育场）',x:80,z:80,w:140,d:110,h:0.3,group:g,bounds:{minX:8,maxX:152,minZ:20,maxZ:140},questId:'track'});
+})();
+
+/* ==================== 体育馆群 ==================== */
+addArena('综合体育馆',-120,40,60,50,18,M.bldgE,{questId:'gym'});
+addArena('英东游泳馆',-120,130,55,40,14,M.bldgF,{questId:'swim'});
+addArena('体操训练馆',-55,130,42,32,15,new THREE.MeshPhongMaterial({color:0xA0856C,flatShading:true}));
+addBuilding('武术馆',-55,200,38,28,12,M.red,{entrance:true,roofMat:M.roofR});
+addBuilding('乒乓球馆',10,200,32,24,10,M.bldgC,{entrance:true,roofMat:M.roofG,flatRoof:true});
+addArena('网球馆',75,200,42,30,12,new THREE.MeshPhongMaterial({color:0x2E8B57,flatShading:true}));
+addBuilding('排球综合馆',-120,-30,42,32,15,new THREE.MeshPhongMaterial({color:0x5070A0,flatShading:true}),{entrance:true,roofMat:M.roofG,flatRoof:true});
+
+setLoad(52,'建造生活区…');
+
+/* ==================== 食堂 ==================== */
+addBuilding('第一食堂',100,155,38,22,11,M.bldgA,{entrance:true,roofMat:M.roofR,questId:'canteen'});
+addBuilding('第二食堂',160,150,32,20,11,M.bldgA,{entrance:true,roofMat:M.roofR});
+addBuilding('清真食堂',135,115,22,16,8,M.bldgA,{entrance:true,roofMat:M.roofR});
+
+/* ==================== 宿舍 ==================== */
+for(let i=0;i<6;i++){const row=Math.floor(i/3),col=i%3;addBuilding(`学生公寓${i+1}号楼`,130+col*32,190+row*38,26,13,21,M.bldgD,{entrance:true,roofMat:M.roofG,flatRoof:true});}
+addBuilding('研究生公寓A',145,280,42,14,25,M.bldgD,{entrance:true,roofMat:M.roofG,flatRoof:true});
+addBuilding('研究生公寓B',145,310,42,14,25,M.bldgD,{entrance:true,roofMat:M.roofG,flatRoof:true});
+addBuilding('留学生公寓',195,230,28,14,20,M.bldgC,{entrance:true,roofMat:M.roofG,flatRoof:true});
+
+setLoad(58,'建造其他设施…');
+
+/* ==================== 其他建筑 ==================== */
+addBuilding('科研楼',-130,-200,35,18,22,M.bldgC,{entrance:true,roofMat:M.roofG,flatRoof:true});
+addBuilding('体育科学研究所',130,-60,32,20,18,M.bldgC,{entrance:true,roofMat:M.roofG,flatRoof:true});
+addBuilding('国家队训练馆',-160,240,55,38,16,M.bldgE,{roofMat:M.metal,flatRoof:true});
+addBuilding('运动员公寓',-160,290,40,16,20,M.bldgD,{entrance:true,roofMat:M.roofG,flatRoof:true});
+addBuilding('竞技体校教学楼',-170,15,36,18,16,M.bldgA,{entrance:true,roofMat:M.roofR});
+addBuilding('校医院',160,55,24,14,10,M.white,{entrance:true,roofMat:M.roofG,flatRoof:true});
+addBuilding('校园超市',115,90,18,12,5,M.bldgA,{entrance:true,roofMat:M.roofR});
+addBuilding('大学生活动中心',0,-120,32,22,14,M.bldgC,{entrance:true,roofMat:M.roofG,flatRoof:true});
+addBuilding('学术报告厅',55,-140,28,20,13,M.bldgC,{entrance:true,roofMat:M.roofG,flatRoof:true});
+addBuilding('继续教育学院',-160,-140,35,16,14,M.bldgA,{entrance:true,roofMat:M.roofR});
+addBuilding('新闻与传播学院',130,-120,30,16,15,M.bldgB,{entrance:true,roofMat:M.roofR});
+addBuilding('管理学院',-130,-120,30,16,15,M.bldgB,{entrance:true,roofMat:M.roofR});
+
+/* 室外运动场 */
+function outdoorCourt(x,z,w,d,color,name){
+  const m=plane(w,d,new THREE.MeshLambertMaterial({color}));m.position.set(x,0.08,z);scene.add(m);
+  const fMat=new THREE.MeshPhongMaterial({color:0x888888,transparent:true,opacity:0.25});
+  for(const[fx,fz,fw,fd]of[[x,z-d/2,w,0.1],[x,z+d/2,w,0.1],[x-w/2,z,0.1,d],[x+w/2,z,0.1,d]]){const f=box(fw,3,fd,fMat);f.position.set(fx,1.5,fz);scene.add(f);}
+  buildings.push({name,x,z,w,d,h:0.2,group:m,bounds:{minX:x-w/2,maxX:x+w/2,minZ:z-d/2,maxZ:z+d/2}});
+}
+for(let i=0;i<4;i++)outdoorCourt(170+i*18,-15,14,26,0x1565C0,`室外篮球场${i+1}`);
+for(let i=0;i<3;i++)outdoorCourt(168+i*16,-65,11,22,0x2E7D32,`室外网球场${i+1}`);
+outdoorCourt(168,25,14,24,0xF57F17,'室外排球场');
+
+setLoad(65,'建造广场…');
+
+/* ==================== 旗杆广场 ==================== */
+(function(){
+  const g=new THREE.Group();
+  const fl=new THREE.Mesh(new THREE.CircleGeometry(22,32),M.concrete);fl.rotation.x=-Math.PI/2;fl.position.y=0.07;g.add(fl);
+  const pole=new THREE.Mesh(new THREE.CylinderGeometry(0.08,0.12,22),M.metal);pole.position.y=11;g.add(pole);
+  const flag=new THREE.Mesh(new THREE.PlaneGeometry(3.2,2.1),new THREE.MeshLambertMaterial({color:0xFF0000,side:THREE.DoubleSide}));flag.position.set(1.6,20.5,0);g.add(flag);
+  const star=new THREE.Mesh(new THREE.CircleGeometry(0.35,5),new THREE.MeshLambertMaterial({color:0xFFFF00,side:THREE.DoubleSide}));star.position.set(0.5,21.2,0.01);g.add(star);
+  g.position.set(0,0,-155);scene.add(g);
+  buildings.push({name:'旗杆广场',x:0,z:-155,w:44,d:44,h:0.2,group:g,bounds:{minX:-24,maxX:24,minZ:-179,maxZ:-131}});
+})();
+
+setLoad(72,'种植绿化…');
+
+/* ==================== 树木 ==================== */
+function addTree(x,z,h=7,type=0){
+  const t=new THREE.Group();const trH=h*0.38;
+  const trunk=new THREE.Mesh(new THREE.CylinderGeometry(0.12,0.22,trH,5),M.trunk);trunk.position.y=trH/2;trunk.castShadow=true;t.add(trunk);
+  const lm=M.leaf[type%3];
+  if(type%3===0){const cr=new THREE.Mesh(new THREE.SphereGeometry(h*0.32,7,5),lm);cr.position.y=trH+h*0.18;cr.castShadow=true;t.add(cr);}
+  else if(type%3===1){const cr=new THREE.Mesh(new THREE.ConeGeometry(h*0.25,h*0.55,6),lm);cr.position.y=trH+h*0.27;cr.castShadow=true;t.add(cr);}
+  else{for(let i=0;i<3;i++){const r=h*0.28*(1-i*0.2);const c=new THREE.Mesh(new THREE.SphereGeometry(r,6,4),lm);c.position.set((Math.random()-0.5)*r*0.8,trH+i*h*0.14,(Math.random()-0.5)*r*0.8);c.castShadow=true;t.add(c);}}
+  t.position.set(x,0,z);scene.add(t);
+}
+function isBlocked(x,z,pad=4){for(const c of colliders){if(x>c.minX-pad&&x<c.maxX+pad&&z>c.minZ-pad&&z<c.maxZ+pad)return true;}return false;}
+for(let z=-320;z<320;z+=12){for(const dx of[-7,7]){if(!isBlocked(dx,z))addTree(dx+(Math.random()-0.5)*2,z+(Math.random()-0.5)*4,5+Math.random()*4,Math.floor(Math.random()*3));}}
+const treeZones=[{cx:-35,cz:-130,r:25,n:12},{cx:35,cz:-130,r:25,n:12},{cx:-100,cz:-10,r:20,n:8},{cx:100,cz:-10,r:20,n:8},{cx:0,cz:50,r:15,n:6},{cx:-60,cz:260,r:25,n:10},{cx:60,cz:260,r:25,n:10},{cx:-180,cz:160,r:18,n:7},{cx:180,cz:90,r:18,n:7},{cx:0,cz:290,r:30,n:12},{cx:-30,cz:-40,r:12,n:5},{cx:30,cz:-40,r:12,n:5}];
+for(const z2 of treeZones){for(let i=0;i<z2.n;i++){const a=Math.random()*Math.PI*2,d=Math.random()*z2.r;const tx=z2.cx+Math.cos(a)*d,tz=z2.cz+Math.sin(a)*d;if(!isBlocked(tx,tz,3))addTree(tx,tz,4+Math.random()*6,Math.floor(Math.random()*3));}}
+/* 花坛 */
+function flowerBed(x,z,r){const bed=new THREE.Mesh(new THREE.CylinderGeometry(r,r,0.25,12),new THREE.MeshLambertMaterial({color:0x6B4226}));bed.position.set(x,0.125,z);scene.add(bed);const clrs=[0xff6b6b,0xffeb3b,0xff69b4,0x9c27b0,0xff5722,0x4CAF50];for(let i=0;i<25;i++){const a=Math.random()*Math.PI*2,d2=Math.random()*r*0.8;const f=new THREE.Mesh(new THREE.SphereGeometry(0.15+Math.random()*0.15,4,3),new THREE.MeshLambertMaterial({color:clrs[Math.floor(Math.random()*clrs.length)]}));f.position.set(x+Math.cos(a)*d2,0.4,z+Math.sin(a)*d2);scene.add(f);}}
+flowerBed(0,-160,5);flowerBed(-25,-80,3);flowerBed(25,-80,3);flowerBed(0,10,4);flowerBed(-80,40,3);
+
+setLoad(82,'生成NPC…');
+
+/* ==================== NPC SYSTEM ==================== */
+const npcs=[];
+const npcDialogs={
+'保安大叔':['同学你好！欢迎来到北京体育大学，请出示校园卡~','我们南大门是学校的正门，面朝信息路。这个大门可气派了！','校园里骑车注意安全，限速哦。有事随时找我。'],
+'校园导游':['欢迎来到北京体育大学！我来给你介绍~','北体始建于1953年，原名中央体育学院。校园总面积75.5万平方米，有近100个室内外训练场馆！','从南门进来是冠军之路，上面有很多奥运冠军的手印脚印。往北是旗杆广场，再往北就是各个体育场馆。','东边有田径场、篮球场、网球场；西边有综合体育馆、英东游泳馆；北边是宿舍和食堂。好好逛逛吧！'],
+'体育生小王':['嘿！我是田径专项的，百米11秒2，正在努力突破11秒！','我们学校出了很多奥运冠军，许海峰、邓亚萍、林丹、张继科…','田径场标准400米，弹性塑胶跑道。每天早6点就有人训练了。','校训"追求卓越"，我们每天都在追求更快更高更强！'],
+'跑步达人':['嗨！我每天早上6点在田径场跑10圈，风雨无阻！','红色塑胶跑道配绿色内场草地，特别漂亮。','周围都是认真训练的人，自己也充满了动力！','生命在于运动，一起来跑吧！'],
+'图书馆管理员':['欢迎来到图书馆！我们馆藏体育类文献资料全国最全。','一楼开架阅览和借还书，二楼以上有体育历史文献专区。','图书馆早7点到晚10点开放，记得保持安静~','运动之余也要多看书呀！'],
+'篮球队队长':['来打球啊？我们北体篮球可不是普通水平！','综合体育馆里篮球场是专业木地板，比赛级别。室外也有好几块场地。','CUBA联赛我们成绩一直不错，想加入校队先过体能测试！','记住——团队配合比个人技术更重要！'],
+'食堂阿姨':['来啦！今天红烧排骨、宫保鸡丁、土豆牛腩…想吃啥？','一食堂是北体"网红食堂"，便宜量又大！','运动员饭量可大着呢，中午12点排队最长~','多吃饭多运动，身体好才能为国争光！'],
+'武术教练':['站稳了！我是中国武术学院的教练。','北体武术专业全国数一数二。太极拳、长拳、南拳、散打都有。','武术馆在校园北部，每天都有训练课。基本功是关键！','习武先修德。自强不息！'],
+'游泳健将':['刚从泳池出来，今天游了3000米！','英东游泳馆以霍英东先生命名，50米标准赛道，水温恒定26°C。','很多国家游泳队集训在这里。想学可以报校内课程哦！','游泳对心肺特别好，你也试试？'],
+'体操运动员':['你好！我是体操专项的，每天训练6小时以上。','体操需要柔韧性和力量完美结合，翻跟头看着帅其实特痛苦~','我们学校培养了很多世界冠军级的体操运动员。','坚持不放弃，每天比昨天进步一点点就好！'],
+'乒乓球爱好者':['来打乒乓球吗？国球不能丢！🏓','北体乒乓球馆球台都是国际比赛用的蝴蝶牌。','虽然我不是专业的，但每天打两小时，已经三年了。','小球大世界！乒乓球看着简单，门道可深了。'],
+'研究生学姐':['学弟/学妹好！我是运动人体科学专业的研二学生。','研究方向是运动对心血管系统的影响，每天实验+看文献。','体科所有运动分析实验室，高速摄像机、力量测试平台都有。','研究生生活忙但充实。加油！'],
+};
+
+function createNPC(skin,shirt,pants,hat=false){
+  const g=new THREE.Group();g.userData={parts:{}};
+  const p=g.userData.parts;
+  p.torso=box(0.48,0.65,0.28,new THREE.MeshPhongMaterial({color:shirt}));p.torso.position.y=1.08;g.add(p.torso);
+  p.head=new THREE.Mesh(new THREE.SphereGeometry(0.19,8,6),new THREE.MeshPhongMaterial({color:skin}));p.head.position.y=1.62;p.head.castShadow=true;g.add(p.head);
+  const hair=new THREE.Mesh(new THREE.SphereGeometry(0.21,8,5,0,Math.PI*2,0,Math.PI*0.5),new THREE.MeshLambertMaterial({color:0x1a1a1a}));hair.position.y=1.68;g.add(hair);
+  const legMat=new THREE.MeshPhongMaterial({color:pants}),legGeo=new THREE.BoxGeometry(0.16,0.55,0.18);
+  p.legL=new THREE.Mesh(legGeo,legMat);p.legL.position.set(-0.11,0.43,0);g.add(p.legL);
+  p.legR=new THREE.Mesh(legGeo,legMat);p.legR.position.set(0.11,0.43,0);g.add(p.legR);
+  const armGeo=new THREE.BoxGeometry(0.13,0.5,0.14),armMat=new THREE.MeshPhongMaterial({color:shirt});
+  p.armL=new THREE.Mesh(armGeo,armMat);p.armL.position.set(-0.35,1.0,0);g.add(p.armL);
+  p.armR=new THREE.Mesh(armGeo,armMat);p.armR.position.set(0.35,1.0,0);g.add(p.armR);
+  if(hat){const h=new THREE.Mesh(new THREE.CylinderGeometry(0.2,0.23,0.12,8),new THREE.MeshPhongMaterial({color:0xCC0000}));h.position.y=1.84;g.add(h);}
+  return g;
+}
+function addNPCTag(npc,name){
+  const c=document.createElement('canvas');c.width=256;c.height=48;const cx=c.getContext('2d');
+  cx.fillStyle='rgba(0,0,0,0.6)';cx.roundRect(4,4,248,40,8);cx.fill();cx.fillStyle='#fff';cx.font='bold 22px "Microsoft YaHei"';cx.textAlign='center';cx.fillText(name,128,34);
+  const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(c),transparent:true}));sp.position.y=2.15;sp.scale.set(2.8,0.55,1);npc.add(sp);
+}
+const npcData=[
+  {name:'保安大叔',x:18,z:-332,skin:0xDEB887,shirt:0x000060,pants:0x000030,hat:true},
+  {name:'校园导游',x:-8,z:-295,skin:0xF5DEB3,shirt:0xFF4500,pants:0x2a2a2a},
+  {name:'体育生小王',x:70,z:55,skin:0xDEB887,shirt:0xCC0000,pants:0x1a1a1a},
+  {name:'跑步达人',x:100,z:120,skin:0xD2B48C,shirt:0x00CED1,pants:0x2a2a2a},
+  {name:'图书馆管理员',x:-68,z:-65,skin:0xF5DEB3,shirt:0x4169E1,pants:0x2F4F4F},
+  {name:'篮球队队长',x:-105,z:35,skin:0xDEB887,shirt:0xFF6347,pants:0x1a1a1a},
+  {name:'食堂阿姨',x:95,z:148,skin:0xF5DEB3,shirt:0xffffff,pants:0x555555,hat:true},
+  {name:'武术教练',x:-50,z:195,skin:0xD2B48C,shirt:0xffffff,pants:0x1a1a1a},
+  {name:'游泳健将',x:-112,z:115,skin:0xF5DEB3,shirt:0x1E90FF,pants:0x000060},
+  {name:'体操运动员',x:-50,z:122,skin:0xFFE4C4,shirt:0xFF1493,pants:0xffffff},
+  {name:'乒乓球爱好者',x:15,z:192,skin:0xDEB887,shirt:0xFFD700,pants:0x2a2a2a},
+  {name:'研究生学姐',x:140,z:275,skin:0xF5DEB3,shirt:0x2F4F4F,pants:0x333333},
+];
+for(const d of npcData){const model=createNPC(d.skin,d.shirt,d.pants,d.hat);model.position.set(d.x,0,d.z);addNPCTag(model,d.name);scene.add(model);npcs.push({name:d.name,model,baseX:d.x,baseZ:d.z,wanderAngle:Math.random()*Math.PI*2,wanderR:4+Math.random()*8,wanderSpd:0.3+Math.random()*0.4,walkCycle:Math.random()*Math.PI*2});}
+
+setLoad(90,'构建玩家…');
+
+/* ==================== PLAYER ==================== */
+const playerGroup=new THREE.Group();
+const playerModel=createNPC(0xDEB887,0x4169E1,0x2a2a2a);playerModel.visible=false;playerGroup.add(playerModel);
+playerGroup.position.set(0,0,-325); scene.add(playerGroup);
+camera.position.set(0,PLAYER_H,0); playerGroup.add(camera);
+
+/* ==================== MINIMAP ==================== */
+const mmCvs=document.getElementById('minimap-canvas'),mmCtx=mmCvs.getContext('2d');
+function renderMinimap(){
+  const w=mmCvs.width,h=mmCvs.height,cx=w/2,cy=h/2,scale=0.25;
+  const px=playerGroup.position.x,pz=playerGroup.position.z;
+  mmCtx.clearRect(0,0,w,h);mmCtx.save();mmCtx.beginPath();mmCtx.arc(cx,cy,cx-2,0,Math.PI*2);mmCtx.clip();
+  mmCtx.fillStyle='#1a2e1a';mmCtx.fillRect(0,0,w,h);
+  mmCtx.fillStyle='#444';mmCtx.fillRect(cx-2,0,4,h);
+  for(const b of buildings){const bx=cx+(b.x-px)*scale,bz=cy+(b.z-pz)*scale,bw=(b.w||20)*scale,bd=(b.d||20)*scale;if(bx+bw/2<0||bx-bw/2>w||bz+bd/2<0||bz-bd/2>h)continue;mmCtx.fillStyle=b.questId?'#e94560':'#777';mmCtx.fillRect(bx-bw/2,bz-bd/2,bw,bd);}
+  for(const n of npcs){const nx=cx+(n.model.position.x-px)*scale,nz=cy+(n.model.position.z-pz)*scale;if(nx<0||nx>w||nz<0||nz>h)continue;mmCtx.fillStyle='#0f0';mmCtx.beginPath();mmCtx.arc(nx,nz,2.5,0,Math.PI*2);mmCtx.fill();}
+  mmCtx.fillStyle='#ff0';mmCtx.beginPath();mmCtx.arc(cx,cy,4,0,Math.PI*2);mmCtx.fill();
+  const dx2=cx+Math.sin(S.yaw)*10,dy2=cy-Math.cos(S.yaw)*10;mmCtx.strokeStyle='#ff0';mmCtx.lineWidth=2;mmCtx.beginPath();mmCtx.moveTo(cx,cy);mmCtx.lineTo(dx2,dy2);mmCtx.stroke();
+  mmCtx.fillStyle='#fff';mmCtx.font='bold 10px sans-serif';mmCtx.textAlign='center';
+  const nA=-S.yaw;mmCtx.fillText('N',cx+Math.sin(nA)*90,cy-Math.cos(nA)*90+4);
+  mmCtx.restore();
+}
+
+/* ==================== QUESTS ==================== */
+const quests=[
+  {id:'gate',text:'🚪 找到南大门',done:false,cat:'校园地标'},
+  {id:'champion',text:'🏆 走过冠军之路',done:false,cat:'校园地标'},
+  {id:'library',text:'📚 参观图书馆',done:false,cat:'校园地标'},
+  {id:'track',text:'🏃 去田径场看看',done:false,cat:'体育场馆'},
+  {id:'gym',text:'🏀 参观综合体育馆',done:false,cat:'体育场馆'},
+  {id:'swim',text:'🏊 参观英东游泳馆',done:false,cat:'体育场馆'},
+  {id:'canteen',text:'🍜 去食堂看看',done:false,cat:'生活区'},
+  {id:'talk3',text:'💬 和3位NPC对话',done:false,count:0,need:3,cat:'社交'},
+  {id:'talk6',text:'💬 和6位NPC对话',done:false,count:0,need:6,cat:'社交'},
+  {id:'explore5',text:'🗺️ 发现5个不同区域',done:false,count:0,need:5,cat:'探索'},
+  {id:'run1km',text:'🏃‍♂️ 累计奔跑1000米',done:false,dist:0,count:0,need:1000,cat:'运动'},
+];
+function updateQuestUI(){
+  const el=document.getElementById('quest-list');el.innerHTML='';let lastCat='';
+  for(const q of quests){if(q.cat!==lastCat){if(lastCat){const sep=document.createElement('div');sep.className='sep';el.appendChild(sep);}lastCat=q.cat;}
+  const d=document.createElement('div');d.className='qi'+(q.done?' done':'');let txt=(q.done?'✅ ':'⬜ ')+q.text;if(q.need&&!q.done)txt+=` (${q.count}/${q.need})`;d.textContent=txt;el.appendChild(d);}
+}
+function completeQuest(id){const q=quests.find(q2=>q2.id===id);if(q&&!q.done){q.done=true;updateQuestUI();showNotif('✨ 任务完成: '+q.text);if(quests.every(q2=>q2.done))setTimeout(()=>showNotif('🎉🎉🎉 恭喜！所有校园探索任务完成！'),1000);}}
+function showNotif(text){const el=document.createElement('div');el.className='notif';el.textContent=text;document.getElementById('notif-container').appendChild(el);setTimeout(()=>el.remove(),2500);}
+updateQuestUI();
+
+setLoad(95,'准备就绪！点击开始');
+
+/* ==================== WALKING ANIMATION ==================== */
+function animWalk(g,cycle,spd){
+  const p=g.userData.parts;if(!p)return;
+  const sw=Math.sin(cycle)*0.4*spd;
+  if(p.legL){p.legL.position.z=sw*0.3;p.legL.position.y=0.43+Math.abs(Math.sin(cycle))*0.05;}
+  if(p.legR){p.legR.position.z=-sw*0.3;p.legR.position.y=0.43+Math.abs(Math.cos(cycle))*0.05;}
+  if(p.armL){p.armL.position.z=-sw*0.25;p.armL.rotation.x=-sw*0.3;}
+  if(p.armR){p.armR.position.z=sw*0.25;p.armR.rotation.x=sw*0.3;}
+  if(p.torso){p.torso.position.y=1.08+Math.abs(Math.sin(cycle*2))*0.02;}
+}
+function resetPose(g){
+  const p=g.userData.parts;if(!p)return;
+  if(p.legL){p.legL.position.z=0;p.legL.position.y=0.43;}
+  if(p.legR){p.legR.position.z=0;p.legR.position.y=0.43;}
+  if(p.armL){p.armL.position.z=0;p.armL.rotation.x=0;}
+  if(p.armR){p.armR.position.z=0;p.armR.rotation.x=0;}
+  if(p.torso){p.torso.position.y=1.08;}
+}
+
+/* ==================== CONTROLS ==================== */
+document.addEventListener('click',()=>{if(!S.locked)renderer.domElement.requestPointerLock();});
+document.addEventListener('pointerlockchange',()=>{S.locked=document.pointerLockElement===renderer.domElement;});
+document.addEventListener('mousemove',e=>{if(!S.locked)return;S.yaw-=e.movementX*MSENS;S.pitch-=e.movementY*MSENS;S.pitch=Math.max(-1.45,Math.min(1.45,S.pitch));});
+document.addEventListener('keydown',e=>{
+  switch(e.code){
+    case'KeyW':S.fwd=true;break;case'KeyS':S.back=true;break;case'KeyA':S.left=true;break;case'KeyD':S.right=true;break;
+    case'ShiftLeft':case'ShiftRight':S.sprint=true;break;
+    case'Space':if(S.canJump){S.vel.y=JUMP_F;S.canJump=false;}e.preventDefault();break;
+    case'KeyF':S.thirdPerson=!S.thirdPerson;playerModel.visible=S.thirdPerson;break;
+    case'KeyE':if(S.nearNPC){if(S.dialogOpen){S.dialogIdx++;const dl=npcDialogs[S.nearNPC.name];if(!dl||S.dialogIdx>=dl.length)closeDialog();else document.getElementById('dialog-text').textContent=dl[S.dialogIdx];}else openDialog(S.nearNPC);}break;
+    case'KeyQ':if(S.dialogOpen)closeDialog();break;
+  }
+});
+document.addEventListener('keyup',e=>{
+  switch(e.code){case'KeyW':S.fwd=false;break;case'KeyS':S.back=false;break;case'KeyA':S.left=false;break;case'KeyD':S.right=false;break;case'ShiftLeft':case'ShiftRight':S.sprint=false;break;}
+});
+function openDialog(npc){
+  S.dialogOpen=true;S.dialogIdx=0;const dl=npcDialogs[npc.name];if(!dl)return;
+  document.getElementById('dialog').style.display='block';document.getElementById('dialog-name').textContent=npc.name;document.getElementById('dialog-text').textContent=dl[0];
+  if(!S.visited.has('npc_'+npc.name)){S.visited.add('npc_'+npc.name);for(const q of quests){if((q.id==='talk3'||q.id==='talk6')&&!q.done){q.count++;if(q.count>=q.need)completeQuest(q.id);}}updateQuestUI();}
+}
+function closeDialog(){S.dialogOpen=false;document.getElementById('dialog').style.display='none';}
+
+/* ==================== GAME LOOP ==================== */
+const clock=new THREE.Clock();
+let lastPos=new THREE.Vector3().copy(playerGroup.position);
+
+function update(){
+  const dt=Math.min(clock.getDelta(),0.1);
+  if(!S.locked)return;
+  camera.quaternion.setFromEuler(new THREE.Euler(S.pitch,S.yaw,0,'YXZ'));
+  const fwdDir=new THREE.Vector3(0,0,-1).applyQuaternion(new THREE.Quaternion().setFromEuler(new THREE.Euler(0,S.yaw,0)));
+  const rightDir=new THREE.Vector3(1,0,0).applyQuaternion(new THREE.Quaternion().setFromEuler(new THREE.Euler(0,S.yaw,0)));
+  const moveDir=new THREE.Vector3();
+  if(S.fwd)moveDir.add(fwdDir);if(S.back)moveDir.sub(fwdDir);if(S.right)moveDir.add(rightDir);if(S.left)moveDir.sub(rightDir);
+  S.isMoving=moveDir.length()>0.01;
+  const wantSprint=S.sprint&&S.isMoving&&S.stamina>0;
+  if(wantSprint)S.stamina=Math.max(0,S.stamina-STAM_DRAIN*dt);else S.stamina=Math.min(MAX_STAM,S.stamina+STAM_REGEN*dt);
+  const actualSprint=wantSprint&&S.stamina>0;
+  const speed=actualSprint?RUN_SPD:WALK_SPD;
+  if(S.isMoving)moveDir.normalize().multiplyScalar(speed*dt);
+  // Walk animation
+  if(S.isMoving){
+    const cycSpd=actualSprint?14:8;S.walkCycle+=dt*cycSpd;
+    if(!S.thirdPerson)S.headBob=Math.sin(S.walkCycle)*(actualSprint?0.06:0.03);
+    animWalk(playerModel,S.walkCycle,actualSprint?1.2:0.8);
+    if(S.thirdPerson)playerModel.rotation.y=S.yaw+Math.PI;
+  }else{S.headBob*=0.85;resetPose(playerModel);}
+  S.vel.y-=GRAV*dt;
+  let nx=playerGroup.position.x+moveDir.x,nz=playerGroup.position.z+moveDir.z,ny=playerGroup.position.y+S.vel.y*dt;
+  for(const c of colliders){if(nx>c.minX&&nx<c.maxX&&nz>c.minZ&&nz<c.maxZ&&ny<c.maxY){const ds=[{a:'x',v:c.minX-0.5,d:Math.abs(nx-c.minX)},{a:'x',v:c.maxX+0.5,d:Math.abs(nx-c.maxX)},{a:'z',v:c.minZ-0.5,d:Math.abs(nz-c.minZ)},{a:'z',v:c.maxZ+0.5,d:Math.abs(nz-c.maxZ)}];ds.sort((a,b)=>a.d-b.d);if(ds[0].a==='x')nx=ds[0].v;else nz=ds[0].v;}}
+  if(ny<0){ny=0;S.vel.y=0;S.canJump=true;}
+  nx=Math.max(-380,Math.min(380,nx));nz=Math.max(-380,Math.min(380,nz));
+  playerGroup.position.set(nx,ny,nz);
+  // Run distance quest
+  const dMoved=playerGroup.position.distanceTo(lastPos);
+  if(actualSprint&&dMoved>0.01){const rq=quests.find(q=>q.id==='run1km');if(rq&&!rq.done){rq.dist+=dMoved;rq.count=Math.floor(rq.dist);if(rq.dist>=rq.need)completeQuest('run1km');updateQuestUI();}}
+  lastPos.copy(playerGroup.position);
+  // Camera
+  if(S.thirdPerson){const off=new THREE.Vector3(0,2.8,5).applyQuaternion(new THREE.Quaternion().setFromEuler(new THREE.Euler(S.pitch*0.3,S.yaw,0,'YXZ')));camera.position.copy(off);camera.lookAt(new THREE.Vector3(0,PLAYER_H,0));}
+  else{camera.position.set(0,PLAYER_H+S.headBob,0);}
+  // NPCs
+  let closestNPC=null,closestDist=5;
+  for(const npc of npcs){
+    npc.wanderAngle+=npc.wanderSpd*dt;
+    const wx=npc.baseX+Math.cos(npc.wanderAngle)*npc.wanderR*0.3;
+    const wz=npc.baseZ+Math.sin(npc.wanderAngle)*npc.wanderR*0.3;
+    const prevX=npc.model.position.x,prevZ=npc.model.position.z;
+    npc.model.position.x=wx;npc.model.position.z=wz;
+    const npcMoved=Math.abs(wx-prevX)+Math.abs(wz-prevZ)>0.001;
+    if(npcMoved){npc.walkCycle+=dt*5;animWalk(npc.model,npc.walkCycle,0.5);npc.model.rotation.y=Math.atan2(wx-prevX,wz-prevZ);}else resetPose(npc.model);
+    const dx=playerGroup.position.x-npc.model.position.x,dz=playerGroup.position.z-npc.model.position.z;
+    const dist=Math.sqrt(dx*dx+dz*dz);
+    if(dist<12)npc.model.rotation.y=Math.atan2(dx,dz);
+    if(dist<closestDist){closestDist=dist;closestNPC=npc;}
+  }
+  S.nearNPC=closestNPC;
+  document.getElementById('interact-hint').style.display=closestNPC?'block':'none';
+  // Building proximity
+  let nearBldg=null,nearDist=30;
+  for(const b of buildings){const dx=playerGroup.position.x-b.x,dz=playerGroup.position.z-b.z;const dist=Math.sqrt(dx*dx+dz*dz);if(dist<nearDist){nearDist=dist;nearBldg=b;}}
+  if(nearBldg){
+    document.getElementById('location-name').textContent=nearBldg.name;
+    const lbl=document.getElementById('building-label');lbl.textContent=nearBldg.name;lbl.style.display=nearDist<22?'block':'none';
+    if(nearBldg.questId&&nearDist<22)completeQuest(nearBldg.questId);
+    if(nearDist<22&&!S.visited.has('area_'+nearBldg.name)){S.visited.add('area_'+nearBldg.name);const eq=quests.find(q=>q.id==='explore5');if(eq&&!eq.done){eq.count++;if(eq.count>=eq.need)completeQuest('explore5');updateQuestUI();}}
+  }else{document.getElementById('location-name').textContent='北京体育大学';document.getElementById('building-label').style.display='none';}
+  // HUD
+  document.getElementById('coord-display').textContent=`坐标: ${Math.round(nx)}, ${Math.round(nz)}`;
+  document.getElementById('speed-display').textContent=actualSprint?'🏃 奔跑':S.isMoving?'🚶 步行':'⏸ 站立';
+  document.getElementById('stamina-fill').style.width=(S.stamina/MAX_STAM*100)+'%';
+  document.getElementById('stamina-fill').style.background=S.stamina<20?'#f44336':S.stamina<50?'#FF9800':'#4CAF50';
+  S.gameTime+=dt*8;if(S.gameTime>24*60)S.gameTime-=24*60;
+  const hrs=Math.floor(S.gameTime/60),mins=Math.floor(S.gameTime%60);
+  document.getElementById('game-time').textContent=`🕐 ${String(hrs).padStart(2,'0')}:${String(mins).padStart(2,'0')}`;
+  const dayP=S.gameTime/(24*60),sunA=dayP*Math.PI*2-Math.PI/2,sunH=Math.sin(sunA);
+  sun.position.set(200*Math.cos(sunA),Math.max(15,350*sunH),150);
+  sun.intensity=Math.max(0.08,sunH*1.3);ambient.intensity=Math.max(0.12,0.25+sunH*0.3);
+  if(sunH>0.05)scene.background.setHSL(0.56,0.55,0.28+sunH*0.42);
+  else scene.background.setHSL(0.62,0.25,Math.max(0.02,0.02+(sunH+0.1)*1.5));
+  scene.fog.color.copy(scene.background);
+  renderMinimap();
+}
+
+function animate(){requestAnimationFrame(animate);update();renderer.render(scene,camera);}
+setTimeout(()=>{document.getElementById('loading').style.opacity='0';setTimeout(()=>document.getElementById('loading').style.display='none',800);animate();},800);
+window.addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);});
+</script>
+</body>
+</html>
