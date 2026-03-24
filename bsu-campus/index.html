@@ -377,8 +377,8 @@ setLoad(35,'建造图书馆…');
 (function(){
   const g=new THREE.Group();
   const main=box(50,24,28,M.bldgC);main.position.y=12;g.add(main);
-  g.add(Object.assign(new THREE.Mesh(new THREE.PlaneGeometry(48,22),M.glass),{position:new THREE.Vector3(0,12,14.1)}));
-  g.add(Object.assign(new THREE.Mesh(new THREE.PlaneGeometry(48,22),M.glass),{position:new THREE.Vector3(0,12,-14.1),rotation:new THREE.Euler(0,Math.PI,0)}));
+  const gf=new THREE.Mesh(new THREE.PlaneGeometry(48,22),M.glass);gf.position.set(0,12,14.1);g.add(gf);
+  const gb=new THREE.Mesh(new THREE.PlaneGeometry(48,22),M.glass);gb.position.set(0,12,-14.1);gb.rotation.y=Math.PI;g.add(gb);
   for(let i=0;i<6;i++){const step=box(18-i*0.5,0.25,1.2,M.concrete);step.position.set(0,0.125+i*0.25,15+i*1.2);g.add(step);}
   const top=box(52,0.8,30,M.metal);top.position.y=24.4;g.add(top);
   const wing=box(15,18,18,M.bldgC);wing.position.set(25,9,-6);g.add(wing);
@@ -404,7 +404,7 @@ setLoad(42,'建造体育场馆…');
   const gm=new THREE.Mesh(new THREE.ShapeGeometry(is),M.grass);gm.rotation.x=-Math.PI/2;gm.position.y=0.08;g.add(gm);
   for(let l=0;l<8;l++){const rx=59+l*1.22,ry=33+l*1.22;const pts=[];for(let a=0;a<=Math.PI*2+0.01;a+=0.04)pts.push(new THREE.Vector3(Math.cos(a)*rx,0.12,Math.sin(a)*ry));g.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts),new THREE.LineBasicMaterial({color:0xffffff})));}
   for(const side of[-1,1]){const st=box(110,10,14,M.concrete);st.position.set(0,5,side*52);g.add(st);for(let r=0;r<5;r++){const seat=box(108,0.2,1.8,new THREE.MeshLambertMaterial({color:r%2===0?0xcc0000:0xffffff}));seat.position.set(0,1+r*1.8,side*(46+r*1.2));g.add(seat);}}
-  for(const end of[-1,1]){const pg=new THREE.CylinderGeometry(0.05,0.05,2.44);const pm=new THREE.MeshPhongMaterial({color:0xffffff});const go=new THREE.Group();go.add(Object.assign(new THREE.Mesh(pg,pm),{position:new THREE.Vector3(-3.66,1.22,0)}));go.add(Object.assign(new THREE.Mesh(pg,pm),{position:new THREE.Vector3(3.66,1.22,0)}));const cb=new THREE.Mesh(new THREE.CylinderGeometry(0.05,0.05,7.32),pm);cb.rotation.z=Math.PI/2;cb.position.y=2.44;go.add(cb);go.position.set(end*52,0,0);go.rotation.y=Math.PI/2;g.add(go);}
+  for(const end of[-1,1]){const pg=new THREE.CylinderGeometry(0.05,0.05,2.44);const pm=new THREE.MeshPhongMaterial({color:0xffffff});const go=new THREE.Group();const lp=new THREE.Mesh(pg,pm);lp.position.set(-3.66,1.22,0);go.add(lp);const rp=new THREE.Mesh(pg,pm);rp.position.set(3.66,1.22,0);go.add(rp);const cb=new THREE.Mesh(new THREE.CylinderGeometry(0.05,0.05,7.32),pm);cb.rotation.z=Math.PI/2;cb.position.y=2.44;go.add(cb);go.position.set(end*52,0,0);go.rotation.y=Math.PI/2;g.add(go);}
   g.position.set(80,0,80);scene.add(g);
   buildings.push({name:'田径场（主体育场）',x:80,z:80,w:140,d:110,h:0.3,group:g,bounds:{minX:8,maxX:152,minZ:20,maxZ:140},questId:'track'});
 })();
