@@ -1,0 +1,1079 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>🏔️ 四川稀土大发现 - 互动探索游戏</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #d4af37;
+            --secondary-color: #8b4513;
+            --bg-dark: #1a1410;
+            --bg-light: #2d2520;
+            --text-light: #f5f5dc;
+            --text-dark: #3e2723;
+            --success-color: #4caf50;
+            --glow-color: #ffd700;
+            --earth-1: #5d4037;
+            --earth-2: #6d4c41;
+            --earth-3: #795548;
+            --earth-4: #8d6e63;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Noto Sans SC', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            overflow: hidden;
+            width: 100vw;
+            height: 100vh;
+            background: var(--bg-dark);
+            color: var(--text-light);
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: none;
+            opacity: 0;
+            transition: opacity 0.5s ease;
+        }
+
+        .screen.active {
+            display: flex;
+            opacity: 1;
+        }
+
+        /* Landing Screen */
+        #landing {
+            background: linear-gradient(135deg, #1a237e 0%, #311b92 25%, #4a148c 50%, #880e4f 75%, #bf360c 100%);
+            background-size: 400% 400%;
+            animation: gradientShift 15s ease infinite;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        @keyframes gradientShift {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+
+        .mountains {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 60%;
+            background: 
+                linear-gradient(150deg, transparent 40%, rgba(62, 39, 35, 0.9) 40.5%, rgba(62, 39, 35, 0.9) 60%, transparent 60.5%),
+                linear-gradient(170deg, transparent 50%, rgba(78, 52, 46, 0.8) 50.5%, rgba(78, 52, 46, 0.8) 70%, transparent 70.5%),
+                linear-gradient(155deg, transparent 45%, rgba(93, 64, 55, 0.7) 45.5%, rgba(93, 64, 55, 0.7) 65%, transparent 65.5%);
+            background-size: 100% 100%;
+            background-position: bottom;
+            pointer-events: none;
+        }
+
+        .title {
+            font-size: clamp(2rem, 8vw, 4rem);
+            font-weight: 900;
+            text-align: center;
+            margin-bottom: 1rem;
+            text-shadow: 
+                0 0 10px var(--glow-color),
+                0 0 20px var(--glow-color),
+                0 0 30px var(--glow-color),
+                0 0 40px rgba(255, 215, 0, 0.5);
+            animation: titleGlow 2s ease-in-out infinite;
+            z-index: 1;
+        }
+
+        @keyframes titleGlow {
+            0%, 100% { text-shadow: 0 0 10px var(--glow-color), 0 0 20px var(--glow-color); }
+            50% { text-shadow: 0 0 20px var(--glow-color), 0 0 30px var(--glow-color), 0 0 40px var(--glow-color); }
+        }
+
+        .subtitle {
+            font-size: clamp(0.9rem, 3vw, 1.2rem);
+            text-align: center;
+            margin-bottom: 2rem;
+            opacity: 0.95;
+            z-index: 1;
+            max-width: 90%;
+        }
+
+        .hot-badge {
+            background: linear-gradient(135deg, #ff6b6b, #ee5a6f);
+            padding: 0.5rem 1.5rem;
+            border-radius: 50px;
+            font-size: clamp(0.8rem, 2.5vw, 1rem);
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 15px rgba(255, 107, 107, 0.4);
+            animation: pulse 2s ease-in-out infinite;
+            z-index: 1;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        .start-btn {
+            padding: 1rem 3rem;
+            font-size: clamp(1rem, 3vw, 1.4rem);
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--primary-color), #ffb347);
+            border: none;
+            border-radius: 50px;
+            color: var(--text-dark);
+            cursor: pointer;
+            box-shadow: 0 8px 25px rgba(212, 175, 55, 0.5);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            z-index: 1;
+            animation: btnPulse 2s ease-in-out infinite;
+        }
+
+        @keyframes btnPulse {
+            0%, 100% { transform: translateY(0); box-shadow: 0 8px 25px rgba(212, 175, 55, 0.5); }
+            50% { transform: translateY(-5px); box-shadow: 0 12px 35px rgba(212, 175, 55, 0.7); }
+        }
+
+        .start-btn:active {
+            transform: scale(0.95) !important;
+        }
+
+        /* Mining Screen */
+        #mining {
+            flex-direction: column;
+            background: linear-gradient(180deg, #2c1810 0%, #1a0f0a 100%);
+        }
+
+        .mining-header {
+            padding: 1rem;
+            background: rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+            border-bottom: 2px solid rgba(212, 175, 55, 0.3);
+        }
+
+        .progress-section {
+            margin-bottom: 0.8rem;
+        }
+
+        .progress-label {
+            font-size: clamp(0.9rem, 2.5vw, 1.1rem);
+            margin-bottom: 0.5rem;
+            font-weight: 700;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 30px;
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 15px;
+            overflow: hidden;
+            position: relative;
+            border: 2px solid rgba(212, 175, 55, 0.3);
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary-color), #ffd700);
+            width: 0%;
+            transition: width 0.5s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .progress-fill::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            right: 0;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+            animation: shimmer 2s infinite;
+        }
+
+        @keyframes shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+
+        .progress-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-weight: 700;
+            font-size: clamp(0.8rem, 2vw, 1rem);
+            color: var(--text-light);
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
+        }
+
+        .energy-bar {
+            height: 20px;
+            margin-top: 0.5rem;
+        }
+
+        .energy-fill {
+            background: linear-gradient(90deg, #4caf50, #8bc34a);
+        }
+
+        .mining-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+            overflow-y: auto;
+        }
+
+        .mining-grid {
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            gap: clamp(4px, 1vw, 8px);
+            max-width: 600px;
+            width: 100%;
+            margin-bottom: 1rem;
+        }
+
+        @media (max-width: 600px) {
+            .mining-grid {
+                grid-template-columns: repeat(6, 1fr);
+            }
+        }
+
+        .rock-block {
+            aspect-ratio: 1;
+            background: linear-gradient(135deg, var(--earth-3), var(--earth-2));
+            border-radius: 8px;
+            cursor: pointer;
+            position: relative;
+            transition: transform 0.1s ease;
+            border: 2px solid rgba(0, 0, 0, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: clamp(1rem, 3vw, 1.5rem);
+            overflow: hidden;
+        }
+
+        .rock-block::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), transparent);
+            pointer-events: none;
+        }
+
+        .rock-block:active {
+            transform: scale(0.9);
+        }
+
+        .rock-block.mined {
+            background: linear-gradient(135deg, #3e2723, #2c1810);
+            border-color: rgba(255, 255, 255, 0.1);
+            cursor: default;
+            animation: minedShake 0.3s ease;
+        }
+
+        @keyframes minedShake {
+            0%, 100% { transform: translate(0, 0); }
+            25% { transform: translate(-3px, 3px); }
+            75% { transform: translate(3px, -3px); }
+        }
+
+        .rock-block.element {
+            animation: elementReveal 0.6s ease;
+        }
+
+        @keyframes elementReveal {
+            0% { transform: scale(0) rotate(0deg); opacity: 0; }
+            50% { transform: scale(1.2) rotate(180deg); }
+            100% { transform: scale(1) rotate(360deg); opacity: 1; }
+        }
+
+        .element-symbol {
+            font-weight: 900;
+            font-size: clamp(1.2rem, 4vw, 2rem);
+            background: linear-gradient(135deg, var(--glow-color), #fff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: elementGlow 2s ease-in-out infinite;
+        }
+
+        @keyframes elementGlow {
+            0%, 100% { filter: brightness(1); }
+            50% { filter: brightness(1.5); }
+        }
+
+        .collection-panel {
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 1rem;
+            max-width: 600px;
+            width: 100%;
+            max-height: 150px;
+            overflow-x: auto;
+            overflow-y: hidden;
+        }
+
+        .collection-label {
+            font-size: clamp(0.9rem, 2.5vw, 1rem);
+            margin-bottom: 0.5rem;
+            font-weight: 700;
+        }
+
+        .collection-grid {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: nowrap;
+        }
+
+        .collection-item {
+            min-width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, rgba(212, 175, 55, 0.2), rgba(255, 215, 0, 0.1));
+            border: 2px solid rgba(212, 175, 55, 0.5);
+            border-radius: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7rem;
+            opacity: 0.3;
+        }
+
+        .collection-item.found {
+            opacity: 1;
+            background: linear-gradient(135deg, var(--primary-color), var(--glow-color));
+            border-color: var(--glow-color);
+            animation: foundBounce 0.5s ease;
+        }
+
+        @keyframes foundBounce {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+        }
+
+        .collection-item .symbol {
+            font-size: 1.2rem;
+            font-weight: 900;
+        }
+
+        .collection-item .name {
+            font-size: 0.6rem;
+        }
+
+        /* Modal */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            padding: 20px;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .modal-content {
+            background: linear-gradient(135deg, #2d2520, #1a1410);
+            border-radius: 20px;
+            padding: 2rem;
+            max-width: 500px;
+            width: 90%;
+            text-align: center;
+            border: 3px solid var(--primary-color);
+            box-shadow: 0 20px 60px rgba(212, 175, 55, 0.5);
+            animation: modalSlideIn 0.5s ease;
+            position: relative;
+        }
+
+        @keyframes modalSlideIn {
+            from { transform: translateY(-50px) scale(0.9); opacity: 0; }
+            to { transform: translateY(0) scale(1); opacity: 1; }
+        }
+
+        .modal-element-symbol {
+            font-size: clamp(3rem, 10vw, 5rem);
+            font-weight: 900;
+            background: linear-gradient(135deg, var(--glow-color), #fff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 0.5rem;
+            animation: elementPulse 1.5s ease-in-out infinite;
+        }
+
+        @keyframes elementPulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+
+        .modal-element-name {
+            font-size: clamp(1.5rem, 5vw, 2rem);
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .modal-element-number {
+            font-size: clamp(1rem, 3vw, 1.2rem);
+            opacity: 0.8;
+            margin-bottom: 1.5rem;
+        }
+
+        .modal-element-icon {
+            font-size: clamp(2rem, 6vw, 3rem);
+            margin-bottom: 1rem;
+        }
+
+        .modal-element-fact {
+            font-size: clamp(0.9rem, 2.5vw, 1.1rem);
+            line-height: 1.6;
+            margin-bottom: 2rem;
+            background: rgba(255, 215, 0, 0.1);
+            padding: 1rem;
+            border-radius: 10px;
+            border-left: 4px solid var(--primary-color);
+        }
+
+        .modal-btn {
+            padding: 0.8rem 2rem;
+            font-size: clamp(0.9rem, 2.5vw, 1.1rem);
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--primary-color), #ffb347);
+            border: none;
+            border-radius: 50px;
+            color: var(--text-dark);
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(212, 175, 55, 0.5);
+            transition: transform 0.2s ease;
+        }
+
+        .modal-btn:active {
+            transform: scale(0.95);
+        }
+
+        /* Victory Screen */
+        #victory {
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: linear-gradient(135deg, #1a237e 0%, #4a148c 50%, #880e4f 100%);
+            padding: 20px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .confetti {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background: var(--primary-color);
+            animation: confettiFall 3s linear infinite;
+        }
+
+        @keyframes confettiFall {
+            to {
+                transform: translateY(100vh) rotate(360deg);
+                opacity: 0;
+            }
+        }
+
+        .victory-title {
+            font-size: clamp(2rem, 7vw, 3.5rem);
+            font-weight: 900;
+            text-align: center;
+            margin-bottom: 1rem;
+            text-shadow: 0 0 20px var(--glow-color);
+            z-index: 1;
+        }
+
+        .victory-stats {
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            max-width: 500px;
+            width: 90%;
+            z-index: 1;
+        }
+
+        .stat-item {
+            font-size: clamp(0.9rem, 2.5vw, 1.1rem);
+            margin-bottom: 0.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .stat-value {
+            font-weight: 700;
+            color: var(--primary-color);
+        }
+
+        .victory-message {
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            max-width: 500px;
+            width: 90%;
+            font-size: clamp(0.9rem, 2.5vw, 1rem);
+            line-height: 1.8;
+            z-index: 1;
+        }
+
+        .victory-buttons {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            justify-content: center;
+            z-index: 1;
+        }
+
+        .victory-btn {
+            padding: 1rem 2rem;
+            font-size: clamp(0.9rem, 2.5vw, 1.1rem);
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--primary-color), #ffb347);
+            border: none;
+            border-radius: 50px;
+            color: var(--text-dark);
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(212, 175, 55, 0.5);
+            transition: transform 0.2s ease;
+        }
+
+        .victory-btn:active {
+            transform: scale(0.95);
+        }
+
+        .victory-btn.secondary {
+            background: linear-gradient(135deg, #6a1b9a, #8e24aa);
+        }
+
+        .particle {
+            position: absolute;
+            pointer-events: none;
+            animation: particleFloat 1s ease-out forwards;
+        }
+
+        @keyframes particleFloat {
+            0% {
+                transform: translate(0, 0) scale(1);
+                opacity: 1;
+            }
+            100% {
+                transform: translate(var(--tx), var(--ty)) scale(0);
+                opacity: 0;
+            }
+        }
+
+        .shake {
+            animation: shake 0.3s ease;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+
+        /* Loading animation for screen transitions */
+        .fade-out {
+            animation: fadeOut 0.5s ease forwards;
+        }
+
+        @keyframes fadeOut {
+            to { opacity: 0; }
+        }
+
+        .fade-in {
+            animation: fadeInAnim 0.5s ease forwards;
+        }
+
+        @keyframes fadeInAnim {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Landing Screen -->
+    <div id="landing" class="screen active">
+        <div class="mountains"></div>
+        <div class="title">🏔️ 四川稀土大发现</div>
+        <div class="subtitle">2026年3月，四川发现大型稀土矿藏，震惊世界！</div>
+        <div class="hot-badge">🔥 全网热议 214.6万讨论</div>
+        <button class="start-btn" id="startBtn">开始探索</button>
+    </div>
+
+    <!-- Mining Screen -->
+    <div id="mining" class="screen">
+        <div class="mining-header">
+            <div class="progress-section">
+                <div class="progress-label">🔍 已发现 <span id="foundCount">0</span>/17 种稀土元素</div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill"></div>
+                    <div class="progress-text" id="progressText">0%</div>
+                </div>
+            </div>
+            <div class="progress-section">
+                <div class="progress-label">⚡ 挖矿能量</div>
+                <div class="progress-bar energy-bar">
+                    <div class="progress-fill energy-fill" id="energyFill"></div>
+                </div>
+            </div>
+        </div>
+        <div class="mining-area">
+            <div class="mining-grid" id="miningGrid"></div>
+            <div class="collection-panel">
+                <div class="collection-label">📦 元素收藏</div>
+                <div class="collection-grid" id="collectionGrid"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Element Detail Modal -->
+    <div id="elementModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-element-symbol" id="modalSymbol"></div>
+            <div class="modal-element-name" id="modalName"></div>
+            <div class="modal-element-number" id="modalNumber"></div>
+            <div class="modal-element-icon" id="modalIcon"></div>
+            <div class="modal-element-fact" id="modalFact"></div>
+            <button class="modal-btn" id="modalCloseBtn">太棒了！继续挖矿 ⛏️</button>
+        </div>
+    </div>
+
+    <!-- Victory Screen -->
+    <div id="victory" class="screen">
+        <div class="victory-title">🎉 恭喜你发现了全部17种稀土元素！</div>
+        <div class="victory-stats">
+            <div class="stat-item">
+                <span>🔨 总挖矿次数</span>
+                <span class="stat-value" id="totalMines">0</span>
+            </div>
+            <div class="stat-item">
+                <span>💎 发现的元素</span>
+                <span class="stat-value">17/17</span>
+            </div>
+            <div class="stat-item">
+                <span>🎯 挖矿效率</span>
+                <span class="stat-value" id="efficiency">0%</span>
+            </div>
+        </div>
+        <div class="victory-message">
+            <strong>🌟 为什么四川稀土发现如此重要？</strong><br><br>
+            稀土元素是现代科技的"工业维生素"，广泛应用于智能手机、电动汽车、风力发电、军事装备等领域。中国拥有全球最大的稀土储量，四川这次重大发现将进一步巩固我国在全球稀土产业链中的战略地位，为高科技产业发展提供重要保障！
+        </div>
+        <div class="victory-buttons">
+            <button class="victory-btn" id="shareBtn">📤 分享成就</button>
+            <button class="victory-btn secondary" id="restartBtn">🔄 再玩一次</button>
+        </div>
+    </div>
+
+    <script>
+        // Rare Earth Elements Database
+        const ELEMENTS = [
+            { symbol: 'La', name: '镧', number: 57, use: '用于相机镜头和电池', icon: '📷', color: '#FFE4B5' },
+            { symbol: 'Ce', name: '铈', number: 58, use: '用于汽车尾气净化', icon: '🚗', color: '#FFD700' },
+            { symbol: 'Pr', name: '镨', number: 59, use: '用于飞机发动机合金', icon: '✈️', color: '#90EE90' },
+            { symbol: 'Nd', name: '钕', number: 60, use: '用于超强磁铁和耳机', icon: '🎧', color: '#87CEEB' },
+            { symbol: 'Pm', name: '钷', number: 61, use: '用于夜光手表', icon: '⌚', color: '#DDA0DD' },
+            { symbol: 'Sm', name: '钐', number: 62, use: '用于导弹制导系统', icon: '🚀', color: '#F0E68C' },
+            { symbol: 'Eu', name: '铕', number: 63, use: '用于彩色显示屏', icon: '🖥️', color: '#FFB6C1' },
+            { symbol: 'Gd', name: '钆', number: 64, use: '用于核磁共振成像', icon: '🏥', color: '#98FB98' },
+            { symbol: 'Tb', name: '铽', number: 65, use: '用于节能灯', icon: '💡', color: '#FFDAB9' },
+            { symbol: 'Dy', name: '镝', number: 66, use: '用于电动汽车电机', icon: '🔋', color: '#B0E0E6' },
+            { symbol: 'Ho', name: '钬', number: 67, use: '用于激光手术', icon: '⚕️', color: '#FFE4E1' },
+            { symbol: 'Er', name: '铒', number: 68, use: '用于光纤通信', icon: '📡', color: '#E0BBE4' },
+            { symbol: 'Tm', name: '铥', number: 69, use: '用于便携式X光机', icon: '🩻', color: '#FFDEAD' },
+            { symbol: 'Yb', name: '镱', number: 70, use: '用于太阳能电池', icon: '☀️', color: '#F5DEB3' },
+            { symbol: 'Lu', name: '镥', number: 71, use: '用于PET扫描', icon: '🔬', color: '#DEB887' },
+            { symbol: 'Sc', name: '钪', number: 21, use: '用于航天合金材料', icon: '🛸', color: '#D3D3D3' },
+            { symbol: 'Y', name: '钇', number: 39, use: '用于LED和激光', icon: '💎', color: '#C0C0C0' }
+        ];
+
+        // Game State
+        let gameState = {
+            foundElements: new Set(),
+            totalMines: 0,
+            energy: 100,
+            maxEnergy: 100,
+            energyRegenRate: 10,
+            grid: [],
+            gridSize: window.innerWidth <= 600 ? 48 : 48 // 6x8 or 8x6
+        };
+
+        // DOM Elements
+        const screens = {
+            landing: document.getElementById('landing'),
+            mining: document.getElementById('mining'),
+            victory: document.getElementById('victory')
+        };
+
+        const modal = document.getElementById('elementModal');
+        const miningGrid = document.getElementById('miningGrid');
+        const collectionGrid = document.getElementById('collectionGrid');
+        const progressFill = document.getElementById('progressFill');
+        const progressText = document.getElementById('progressText');
+        const energyFill = document.getElementById('energyFill');
+        const foundCount = document.getElementById('foundCount');
+
+        // Initialize
+        function init() {
+            setupEventListeners();
+            createCollectionPanel();
+        }
+
+        function setupEventListeners() {
+            document.getElementById('startBtn').addEventListener('click', startGame);
+            document.getElementById('modalCloseBtn').addEventListener('click', closeModal);
+            document.getElementById('restartBtn').addEventListener('click', restartGame);
+            document.getElementById('shareBtn').addEventListener('click', shareAchievement);
+        }
+
+        function switchScreen(from, to) {
+            screens[from].classList.add('fade-out');
+            setTimeout(() => {
+                screens[from].classList.remove('active', 'fade-out');
+                screens[to].classList.add('active', 'fade-in');
+                setTimeout(() => {
+                    screens[to].classList.remove('fade-in');
+                }, 500);
+            }, 500);
+        }
+
+        function startGame() {
+            switchScreen('landing', 'mining');
+            initializeGame();
+        }
+
+        function initializeGame() {
+            gameState.foundElements.clear();
+            gameState.totalMines = 0;
+            gameState.energy = 100;
+            gameState.grid = [];
+
+            // Create grid with random element placement
+            const elementIndices = new Set();
+            while (elementIndices.size < 17) {
+                elementIndices.add(Math.floor(Math.random() * gameState.gridSize));
+            }
+
+            for (let i = 0; i < gameState.gridSize; i++) {
+                if (elementIndices.has(i)) {
+                    const element = ELEMENTS[Math.floor(Math.random() * ELEMENTS.length)];
+                    // Make sure each element appears only once
+                    let attempts = 0;
+                    while (gameState.grid.some(cell => cell.element && cell.element.symbol === element.symbol) && attempts < 100) {
+                        const newElement = ELEMENTS[Math.floor(Math.random() * ELEMENTS.length)];
+                        if (!gameState.grid.some(cell => cell.element && cell.element.symbol === newElement.symbol)) {
+                            gameState.grid.push({ type: 'element', element: newElement, mined: false });
+                            break;
+                        }
+                        attempts++;
+                    }
+                    if (attempts >= 100 || !gameState.grid.some(cell => cell.element && cell.element.symbol === element.symbol)) {
+                        gameState.grid.push({ type: 'element', element: element, mined: false });
+                    }
+                } else {
+                    gameState.grid.push({ type: 'rock', mined: false });
+                }
+            }
+
+            // Ensure we have exactly 17 unique elements
+            const uniqueElements = new Set(gameState.grid.filter(c => c.type === 'element').map(c => c.element.symbol));
+            if (uniqueElements.size !== 17) {
+                // Redistribute to ensure 17 unique
+                gameState.grid = [];
+                const shuffledElements = [...ELEMENTS].sort(() => Math.random() - 0.5);
+                const positions = Array.from({length: gameState.gridSize}, (_, i) => i).sort(() => Math.random() - 0.5);
+                
+                for (let i = 0; i < gameState.gridSize; i++) {
+                    if (i < 17) {
+                        gameState.grid[positions[i]] = { type: 'element', element: shuffledElements[i], mined: false };
+                    } else {
+                        gameState.grid[positions[i]] = { type: 'rock', mined: false };
+                    }
+                }
+            }
+
+            renderMiningGrid();
+            updateProgress();
+            updateEnergy();
+            startEnergyRegeneration();
+        }
+
+        function renderMiningGrid() {
+            miningGrid.innerHTML = '';
+            gameState.grid.forEach((cell, index) => {
+                const block = document.createElement('div');
+                block.className = 'rock-block';
+                block.dataset.index = index;
+                
+                const shade = Math.floor(Math.random() * 4) + 1;
+                block.style.background = `linear-gradient(135deg, var(--earth-${shade}), var(--earth-${(shade % 4) + 1}))`;
+                
+                block.addEventListener('click', () => mineBlock(index));
+                miningGrid.appendChild(block);
+            });
+        }
+
+        function mineBlock(index) {
+            const cell = gameState.grid[index];
+            
+            if (cell.mined) return;
+            if (gameState.energy < 10) {
+                shakeElement(energyFill.parentElement);
+                return;
+            }
+
+            gameState.energy -= 10;
+            gameState.totalMines++;
+            cell.mined = true;
+            updateEnergy();
+
+            const block = miningGrid.children[index];
+            
+            // Create particles
+            createParticles(block);
+            
+            if (cell.type === 'element') {
+                setTimeout(() => {
+                    block.classList.add('element');
+                    block.style.background = `linear-gradient(135deg, ${cell.element.color}, ${adjustColor(cell.element.color, 20)})`;
+                    block.innerHTML = `<div class="element-symbol">${cell.element.symbol}</div>`;
+                    
+                    gameState.foundElements.add(cell.element.symbol);
+                    updateProgress();
+                    updateCollectionPanel(cell.element);
+                    
+                    setTimeout(() => showElementModal(cell.element), 300);
+                }, 200);
+            } else {
+                block.classList.add('mined');
+                block.innerHTML = '💨';
+                shakeScreen();
+            }
+        }
+
+        function createParticles(block) {
+            const rect = block.getBoundingClientRect();
+            const centerX = rect.left + rect.width / 2;
+            const centerY = rect.top + rect.height / 2;
+            
+            for (let i = 0; i < 8; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                particle.style.left = centerX + 'px';
+                particle.style.top = centerY + 'px';
+                particle.style.width = (Math.random() * 8 + 4) + 'px';
+                particle.style.height = particle.style.width;
+                particle.style.background = `hsl(${Math.random() * 60 + 20}, 70%, 50%)`;
+                particle.style.borderRadius = '50%';
+                
+                const angle = (i / 8) * Math.PI * 2;
+                const distance = Math.random() * 50 + 30;
+                particle.style.setProperty('--tx', Math.cos(angle) * distance + 'px');
+                particle.style.setProperty('--ty', Math.sin(angle) * distance + 'px');
+                
+                document.body.appendChild(particle);
+                
+                setTimeout(() => particle.remove(), 1000);
+            }
+        }
+
+        function adjustColor(color, amount) {
+            const num = parseInt(color.replace('#', ''), 16);
+            const r = Math.min(255, Math.max(0, (num >> 16) + amount));
+            const g = Math.min(255, Math.max(0, ((num >> 8) & 0x00FF) + amount));
+            const b = Math.min(255, Math.max(0, (num & 0x0000FF) + amount));
+            return '#' + ((r << 16) | (g << 8) | b).toString(16).padStart(6, '0');
+        }
+
+        function shakeScreen() {
+            screens.mining.classList.add('shake');
+            setTimeout(() => screens.mining.classList.remove('shake'), 300);
+        }
+
+        function shakeElement(element) {
+            element.classList.add('shake');
+            setTimeout(() => element.classList.remove('shake'), 300);
+        }
+
+        function createCollectionPanel() {
+            collectionGrid.innerHTML = '';
+            ELEMENTS.forEach(element => {
+                const item = document.createElement('div');
+                item.className = 'collection-item';
+                item.dataset.symbol = element.symbol;
+                item.innerHTML = `
+                    <div class="symbol">${element.symbol}</div>
+                    <div class="name">${element.name}</div>
+                `;
+                collectionGrid.appendChild(item);
+            });
+        }
+
+        function updateCollectionPanel(element) {
+            const item = collectionGrid.querySelector(`[data-symbol="${element.symbol}"]`);
+            if (item) {
+                item.classList.add('found');
+                item.style.background = `linear-gradient(135deg, ${element.color}, ${adjustColor(element.color, 30)})`;
+            }
+        }
+
+        function updateProgress() {
+            const found = gameState.foundElements.size;
+            const percentage = (found / 17) * 100;
+            
+            foundCount.textContent = found;
+            progressFill.style.width = percentage + '%';
+            progressText.textContent = Math.round(percentage) + '%';
+            
+            if (found === 17) {
+                setTimeout(() => showVictory(), 1000);
+            }
+        }
+
+        function updateEnergy() {
+            const percentage = (gameState.energy / gameState.maxEnergy) * 100;
+            energyFill.style.width = percentage + '%';
+        }
+
+        function startEnergyRegeneration() {
+            setInterval(() => {
+                if (gameState.energy < gameState.maxEnergy) {
+                    gameState.energy = Math.min(gameState.maxEnergy, gameState.energy + gameState.energyRegenRate);
+                    updateEnergy();
+                }
+            }, 1000);
+        }
+
+        function showElementModal(element) {
+            document.getElementById('modalSymbol').textContent = element.symbol;
+            document.getElementById('modalName').textContent = element.name + ' (' + element.name + ')';
+            document.getElementById('modalNumber').textContent = '原子序数: ' + element.number;
+            document.getElementById('modalIcon').textContent = element.icon;
+            document.getElementById('modalFact').textContent = element.use;
+            
+            modal.classList.add('active');
+        }
+
+        function closeModal() {
+            modal.classList.remove('active');
+        }
+
+        function showVictory() {
+            switchScreen('mining', 'victory');
+            
+            const efficiency = ((17 / gameState.totalMines) * 100).toFixed(1);
+            document.getElementById('totalMines').textContent = gameState.totalMines;
+            document.getElementById('efficiency').textContent = efficiency + '%';
+            
+            createConfetti();
+        }
+
+        function createConfetti() {
+            const colors = ['#FFD700', '#FF6B6B', '#4ECDC4', '#45B7D1', '#FFA07A', '#98D8C8', '#F7DC6F'];
+            
+            for (let i = 0; i < 50; i++) {
+                setTimeout(() => {
+                    const confetti = document.createElement('div');
+                    confetti.className = 'confetti';
+                    confetti.style.left = Math.random() * 100 + '%';
+                    confetti.style.background = colors[Math.floor(Math.random() * colors.length)];
+                    confetti.style.animationDelay = Math.random() * 3 + 's';
+                    confetti.style.animationDuration = (Math.random() * 2 + 2) + 's';
+                    screens.victory.appendChild(confetti);
+                    
+                    setTimeout(() => confetti.remove(), 5000);
+                }, i * 50);
+            }
+        }
+
+        function shareAchievement() {
+            const text = `🎉 我在"四川稀土大发现"游戏中发现了全部17种稀土元素！挖矿${gameState.totalMines}次，效率${((17 / gameState.totalMines) * 100).toFixed(1)}%！快来挑战吧！`;
+            
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(text).then(() => {
+                    const btn = document.getElementById('shareBtn');
+                    const originalText = btn.textContent;
+                    btn.textContent = '✅ 已复制到剪贴板';
+                    setTimeout(() => {
+                        btn.textContent = originalText;
+                    }, 2000);
+                });
+            } else {
+                // Fallback for older browsers
+                const textArea = document.createElement('textarea');
+                textArea.value = text;
+                textArea.style.position = 'fixed';
+                textArea.style.opacity = '0';
+                document.body.appendChild(textArea);
+                textArea.select();
+                try {
+                    document.execCommand('copy');
+                    const btn = document.getElementById('shareBtn');
+                    const originalText = btn.textContent;
+                    btn.textContent = '✅ 已复制到剪贴板';
+                    setTimeout(() => {
+                        btn.textContent = originalText;
+                    }, 2000);
+                } catch (err) {
+                    alert(text);
+                }
+                document.body.removeChild(textArea);
+            }
+        }
+
+        function restartGame() {
+            switchScreen('victory', 'landing');
+        }
+
+        // Initialize app
+        init();
+    </script>
+</body>
+</html>
