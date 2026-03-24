@@ -307,6 +307,18 @@ lp(55,'建造校门…');
   blds.push({name:'旗杆广场',x:p[0],z:p[1],w:40,d:40,h:.2,group:g,bounds:{minX:p[0]-22,maxX:p[0]+22,minZ:p[1]-22,maxZ:p[1]+22}});
 })();
 
+/* ===== 西门 ===== */
+(function(){const p=G(40.0220,116.3079);const g=new THREE.Group();
+  for(const sz of[-6,6]){const pi=bx(3,10,2.5,Mgate);pi.position.set(0,5,sz);g.add(pi);const cap=bx(4,.8,3.5,Mgate);cap.position.set(0,10.4,sz);g.add(cap);}
+  const beam=bx(2.5,1.5,16,Mgate);beam.position.set(0,9,0);g.add(beam);
+  const sign=bx(.5,3,14,MdR);sign.position.set(0,11.5,0);g.add(sign);
+  const tc=document.createElement('canvas');tc.width=384;tc.height=72;const tx=tc.getContext('2d');tx.fillStyle='#fff';tx.font='bold 48px "Microsoft YaHei","SimHei",sans-serif';tx.textAlign='center';tx.fillText('北京体育大学',192,52);
+  const tm=new THREE.Mesh(new THREE.PlaneGeometry(1.8,12),new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(tc),transparent:true}));tm.position.set(.3,11.5,0);tm.rotation.y=Math.PI/2;g.add(tm);
+  for(const sz of[-10,10]){const gd=bx(5,3.5,6,Mo);gd.position.set(0,1.75,sz);g.add(gd);}
+  g.position.set(p[0],0,p[1]);g.rotation.y=Math.PI/2;scene.add(g);
+  blds.push({name:'西门',x:p[0],z:p[1],w:8,d:26,h:12,group:g,bounds:{minX:p[0]-4,maxX:p[0]+4,minZ:p[1]-14,maxZ:p[1]+14}});
+})();
+
 lp(60,'地形与绿化…');
 
 /* ===== GROUND ===== */
@@ -360,7 +372,7 @@ function createNPC(skin,shirt,pants,hat=false){
 }
 function npcTag(npc,name){const c=document.createElement('canvas');c.width=256;c.height=48;const cx=c.getContext('2d');cx.fillStyle='rgba(0,0,0,.6)';cx.roundRect(4,4,248,40,8);cx.fill();cx.fillStyle='#fff';cx.font='bold 22px "Microsoft YaHei"';cx.textAlign='center';cx.fillText(name,128,34);const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(c),transparent:true}));sp.position.y=2.15;sp.scale.set(2.8,.55,1);npc.add(sp);}
 const npcSpawns=[
-  {name:'保安大叔',lat:40.0187,lon:116.3130,skin:0xDEB887,shirt:0x000060,pants:0x000030,hat:true},
+  {name:'保安大叔',lat:40.0220,lon:116.3082,skin:0xDEB887,shirt:0x000060,pants:0x000030,hat:true},
   {name:'校园导游',lat:40.0195,lon:116.3120,skin:0xF5DEB3,shirt:0xFF4500,pants:0x2a2a2a},
   {name:'体育生小王',lat:40.0237,lon:116.3105,skin:0xDEB887,shirt:0xCC0000,pants:0x1a1a1a},
   {name:'图书馆管理员',lat:40.0214,lon:116.3125,skin:0xF5DEB3,shirt:0x4169E1,pants:0x2F4F4F},
@@ -377,7 +389,7 @@ lp(88,'构建玩家…');
 
 /* ===== PLAYER ===== */
 const pG=new THREE.Group();const pM=createNPC(0xDEB887,0x4169E1,0x2a2a2a);pM.visible=false;pG.add(pM);
-const sp=G(40.0187,116.3125);pG.position.set(sp[0],0,sp[1]);scene.add(pG);
+const sp=G(40.0220,116.3079);pG.position.set(sp[0],0,sp[1]);S.yaw=Math.PI/2;scene.add(pG);
 cam.position.set(0,PH,0);pG.add(cam);
 
 /* ===== MINIMAP ===== */
@@ -412,11 +424,21 @@ function renderMM(){
     mmX.stroke();
   }
   // NPCs
-  for(const n of npcs){const nx=cx+(n.model.position.x-px)*sc,nz=cy-(n.model.position.z-pz)*sc;if(nx<0||nx>w||nz<0||nz>h)continue;mmX.fillStyle='#0f0';mmX.beginPath();mmX.arc(nx,nz,2.5,0,Math.PI*2);mmX.fill();}
-  // Player
-  mmX.fillStyle='#ff0';mmX.beginPath();mmX.arc(cx,cy,4,0,Math.PI*2);mmX.fill();
-  const dx=cx+Math.sin(S.yaw)*10,dy=cy+Math.cos(S.yaw)*10;mmX.strokeStyle='#ff0';mmX.lineWidth=2;mmX.beginPath();mmX.moveTo(cx,cy);mmX.lineTo(dx,dy);mmX.stroke();
-  mmX.fillStyle='#fff';mmX.font='bold 9px sans-serif';mmX.textAlign='center';mmX.fillText('N',cx,9);mmX.fillText('S',cx,h-3);
+  for(const n of npcs){const nx=cx+(n.model.position.x-px)*sc,nz=cy-(n.model.position.z-pz)*sc;if(nx<0||nx>w||nz<0||nz>h)continue;mmX.fillStyle='#0f0';mmX.beginPath();mmX.arc(nx,nz,3,0,Math.PI*2);mmX.fill();mmX.strokeStyle='#0a0';mmX.lineWidth=1;mmX.stroke();}
+  // Player - bright triangle with FOV cone
+  mmX.save();mmX.translate(cx,cy);mmX.rotate(-S.yaw);
+  // FOV cone (view direction)
+  mmX.fillStyle='rgba(255,255,0,.08)';mmX.beginPath();mmX.moveTo(0,0);mmX.lineTo(-30,-60);mmX.lineTo(30,-60);mmX.closePath();mmX.fill();
+  // Glow
+  const grd=mmX.createRadialGradient(0,0,0,0,0,12);grd.addColorStop(0,'rgba(255,255,0,.4)');grd.addColorStop(1,'rgba(255,255,0,0)');mmX.fillStyle=grd;mmX.beginPath();mmX.arc(0,0,12,0,Math.PI*2);mmX.fill();
+  // Triangle arrow
+  mmX.fillStyle='#ff0';mmX.beginPath();mmX.moveTo(0,-8);mmX.lineTo(-5,5);mmX.lineTo(5,5);mmX.closePath();mmX.fill();
+  mmX.strokeStyle='#fa0';mmX.lineWidth=1.5;mmX.beginPath();mmX.moveTo(0,-8);mmX.lineTo(-5,5);mmX.lineTo(5,5);mmX.closePath();mmX.stroke();
+  // Center dot
+  mmX.fillStyle='#fff';mmX.beginPath();mmX.arc(0,0,2,0,Math.PI*2);mmX.fill();
+  mmX.restore();
+  // Compass
+  mmX.fillStyle='#fff';mmX.font='bold 10px sans-serif';mmX.textAlign='center';mmX.fillText('N',cx,10);mmX.fillStyle='rgba(255,255,255,.4)';mmX.fillText('S',cx,h-3);mmX.fillText('E',w-7,cy+4);mmX.fillText('W',8,cy+4);
   mmX.strokeStyle='rgba(255,255,255,.15)';mmX.lineWidth=1;mmX.strokeRect(0,0,w,h);
 }
 
