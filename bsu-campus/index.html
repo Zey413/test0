@@ -586,7 +586,7 @@ function update(){
   const aSp=wSp&&S.st>0,spd=aSp?RS:WS;if(S.iM)mv.normalize().multiplyScalar(spd*dt);
   if(S.iM){const cs=aSp?14:8;S.wc+=dt*cs;if(!S.tp)S.hb=Math.sin(S.wc)*(aSp?.06:.03);aW(pM,S.wc,aSp?1.2:.8);if(S.tp)pM.rotation.y=S.yaw+Math.PI;}else{S.hb*=.85;rP(pM);}
   S.vel.y-=GR*dt;let nx=pG.position.x+mv.x,nz=pG.position.z+mv.z,ny=pG.position.y+S.vel.y*dt;
-  for(const c of cols){if(nx>c.minX&&nx<c.maxX&&nz>c.minZ&&nz<c.maxZ&&ny<c.maxY){const ds=[{a:'x',v:c.minX-.5,d:Math.abs(nx-c.minX)},{a:'x',v:c.maxX+.5,d:Math.abs(nx-c.maxX)},{a:'z',v:c.minZ-.5,d:Math.abs(nz-c.minZ)},{a:'z',v:c.maxZ+.5,d:Math.abs(nz-c.maxZ)}];ds.sort((a,b)=>a.d-b.d);if(ds[0].a==='x')nx=ds[0].v;else nz=ds[0].v;}}
+  // 无碰撞 - 所有地方都能自由行走
   if(ny<0){ny=0;S.vel.y=0;S.canJump=true;}nx=Math.max(-700,Math.min(700,nx));nz=Math.max(-700,Math.min(700,nz));pG.position.set(nx,ny,nz);
   const dM=pG.position.distanceTo(lastPos);if(aSp&&dM>.01){const rq=quests.find(q=>q.id==='run1km');if(rq&&!rq.done){rq.dist+=dM;rq.count=Math.floor(rq.dist);if(rq.dist>=rq.need)cQ('run1km');uQ();}}lastPos.copy(pG.position);
   if(S.tp){const cD2=6,cH=3;const oQ=new THREE.Quaternion().setFromEuler(new THREE.Euler(S.pitch*.3,S.yaw,0,'YXZ'));const off=new THREE.Vector3(0,cH,cD2).applyQuaternion(oQ);cam.position.copy(off);const tgt=new THREE.Vector3(pG.position.x,pG.position.y+PH,pG.position.z);cam.lookAt(tgt);}
